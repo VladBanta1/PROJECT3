@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "EatUp - Local Food Delivery";
+}
+
+<div class="text-center">
+    <h1 class="display-4 mb-3">EatUp</h1>
+    <p class="lead mb-4">
+        Order your favorite food from local restaurants, fast and easy.
+    </p>
+    <p>
+        <a asp-controller="Restaurants" asp-action="Index" class="btn btn-lg btn-success">
+            Browse restaurants
+        </a>
+        <a asp-controller="Cart" asp-action="Index" class="btn btn-lg btn-outline-secondary ms-2">
+            View cart
+        </a>
+    </p>
+</div>

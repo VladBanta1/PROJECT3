@@ -1,0 +1,92 @@
+﻿@model EatUp.Models.Restaurant
+
+@{
+    ViewData["Title"] = "Restaurant details";
+
+    // poză restaurant
+    var restaurantImage = string.IsNullOrWhiteSpace(Model.ImageUrl)
+        ? "/images/restaurants/default-restaurant.jpg"   // placeholder pt restaurante
+        : Model.ImageUrl;
+}
+
+<div class="card mb-4 shadow-sm">
+    <img src="@restaurantImage"
+         class="img-fluid rounded mb-3"
+         alt="@Model.Name" />
+
+    <div class="card-body">
+        <h2 class="card-title">@Model.Name</h2>
+        <p class="card-text mb-1 text-muted">@Model.CuisineType</p>
+        <p class="card-text mb-1">
+            <strong>Address:</strong> @Model.Address
+        </p>
+        <p class="card-text mb-1">
+            <strong>Delivery:</strong> @Model.DeliveryTimeMinutes min • @Model.DeliveryFee.ToString("0.00") lei
+        </p>
+        <p class="card-text mt-2">
+            @Model.Description
+        </p>
+    </div>
+</div>
+
+<h4>Menu</h4>
+
+@if (Model.MenuItems != null && Model.MenuItems.Count > 0)
+{
+    <div class="row">
+        @foreach (var item in Model.MenuItems)
+        {
+            // poză produs (ATENȚIE: alt placeholder decât la restaurant)
+            var itemImage = string.IsNullOrWhiteSpace(item.ImageUrl)
+            ? "/images/menu/default-food.jpg"
+            : item.ImageUrl;
+
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <img src="@itemImage"
+                         class="card-img-top"
+                         style="height: 180px; object-fit: cover;"
+                         alt="@item.Name" />
+
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">@item.Name</h5>
+                        <p class="card-text flex-grow-1">
+                            @item.Description
+                        </p>
+                        <p class="card-text fw-bold text-end mb-2">
+                            @item.Price.ToString("0.00") lei
+                        </p>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-controller="Cart"
+                               asp-action="Add"
+                               asp-route-menuItemId="@item.Id"
+                               class="btn btn-sm btn-primary">
+                                Add to cart
+                            </a>
+
+                            <a asp-controller="MenuItems"
+                               asp-action="Edit"
+                               asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-secondary">
+                                Edit item
+                            </a>
+                        </div>
+
+                        
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <p>This restaurant has no menu items yet.</p>
+}
+
+<hr />
+<div class="mt-2">
+    <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-secondary">Edit restaurant</a>
+    <a asp-action="Index" class="btn btn-link">Back to restaurants</a>
+</div>

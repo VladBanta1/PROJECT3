@@ -1,0 +1,43 @@
+﻿@model EatUp.Models.Order
+
+@{
+    ViewData["Title"] = "Order confirmation";
+}
+
+<h1>Order Confirmation</h1>
+<hr />
+
+<p>Thank you, <strong>@Model.CustomerName</strong>! Your order has been placed.</p>
+
+<p>
+    <strong>Order ID:</strong> @Model.Id <br />
+    <strong>Total:</strong> @Model.TotalPrice.ToString("0.00") lei <br />
+    <strong>Address:</strong> @Model.CustomerAddress <br />
+    <strong>Phone:</strong> @Model.CustomerPhone <br />
+    <strong>Date:</strong> @Model.CreatedAt
+</p>
+
+<h4>Items</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-end">Quantity</th>
+            <th class="text-end">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.OrderItems)
+        {
+            <tr>
+                <td>@item.MenuItem?.Name</td>
+                <td class="text-end">@item.UnitPrice.ToString("0.00") lei</td>
+                <td class="text-end">@item.Quantity</td>
+                <td class="text-end">@item.TotalPrice.ToString("0.00") lei</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-controller="Restaurants" asp-action="Index" class="btn btn-primary">Back to restaurants</a>

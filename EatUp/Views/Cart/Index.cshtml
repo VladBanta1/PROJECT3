@@ -1,0 +1,82 @@
+﻿@model List<EatUp.Models.CartItem>
+
+@{
+    ViewData["Title"] = "Cart";
+}
+
+<h1>Your Cart</h1>
+<hr />
+
+@if (TempData["CartError"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["CartError"]
+    </div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <p>Your cart is empty.</p>
+}
+else
+{
+    var total = Model.Sum(item => item.TotalPrice);
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Restaurant</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Total</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.MenuItemName</td>
+                    <td>@item.RestaurantName</td>
+                    <td class="text-end">@item.UnitPrice.ToString("0.00") lei</td>
+                    <td class="text-end">@item.Quantity</td>
+                    <td class="text-end">@item.TotalPrice.ToString("0.00") lei</td>
+                    <td class="text-end">
+                        <a asp-action="Remove"
+                           asp-route-menuItemId="@item.MenuItemId"
+                           class="btn btn-sm btn-danger">
+                            Remove
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="4" class="text-end">Total:</th>
+                <th class="text-end">@total.ToString("0.00") lei</th>
+                <th></th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h4>Checkout</h4>
+    <hr />
+    <form asp-action="Checkout" method="post">
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input name="customerName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <input name="customerAddress" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input name="customerPhone" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-success">Place order</button>
+        <a asp-controller="Restaurants" asp-action="Index" class="btn btn-secondary ms-2">Continue shopping</a>
+    </form>
+}
