@@ -13,7 +13,10 @@
         public int DeliveryTimeMinutes { get; set; }
         public decimal DeliveryFee { get; set; }
 
-        // Relație 1 - * cu MenuItem
+        public string? OwnerId { get; set; }
+        public ApplicationUser? Owner { get; set; }
+        public bool IsApproved { get; set; } = false;
+
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
     }
 }
