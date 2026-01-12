@@ -7,6 +7,7 @@ using EatUp.Data;
 using EatUp.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.CodeAnalysis.Elfie.Model.Structures;
 
 namespace EatUp.Controllers
 {
@@ -59,22 +60,99 @@ namespace EatUp.Controllers
         }
 
         // POST: Restaurants/Create
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Create(Restaurant restaurant)
         {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                TempData["Debug"] = string.Join(" | ", errors);
+                return View(restaurant);
+            }
+
             if (ModelState.IsValid)
             {
                 restaurant.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 restaurant.IsApproved = false;
+                restaurant.IsSubmitted = false;
 
-                _context.Add(restaurant);
+                _context.Restaurants.Add(restaurant);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                TempData["SuccessMessage"] =
+           "Restaurant details saved. Please add menu items and submit for approval.";
+
+                return RedirectToAction(nameof(Manage));
             }
             return View(restaurant);
         }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ViewRestaurant(int id)
+        {
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restaurant == null)
+                return NotFound();
+
+            return View(restaurant);
+        }
+
+
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> SubmitForApproval()
+        {
+            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems)
+                .FirstOrDefaultAsync(r => r.OwnerId == userId);
+
+            if (restaurant == null)
+                return NotFound();
+
+            if (!restaurant.MenuItems.Any())
+            {
+                TempData["SuccessMessage"] =
+                    "You must add at least one menu item before submitting.";
+                return RedirectToAction("Manage");
+            }
+
+            restaurant.IsSubmitted = true;
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] =
+                "Restaurant submitted for approval. Please wait for admin review.";
+
+            return RedirectToAction("Manage");
+        }
+
+
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Manage()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems)
+                .FirstOrDefaultAsync(r => r.OwnerId == userId);
+
+            if (restaurant == null)
+                return RedirectToAction(nameof(Create));
+
+            return View(restaurant);
+        }
+
+
+
 
         // GET: Restaurants/Edit/5
         [Authorize(Roles = "Restaurant")]
@@ -114,8 +192,9 @@ namespace EatUp.Controllers
 
             _context.Update(restaurant);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Restaurant details updated successfully.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Manage));
         }
 
         // =======================
@@ -126,12 +205,12 @@ namespace EatUp.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Pending()
         {
-            var pending = await _context.Restaurants
-                .Where(r => !r.IsApproved)
-                .ToListAsync();
+            var pendingRestaurants = _context.Restaurants
+                .Where(r => r.IsSubmitted && !r.IsApproved);
 
-            return View(pending);
+            return View(await pendingRestaurants.ToListAsync());
         }
+
 
         // POST: Restaurants/Approve/5
         [Authorize(Roles = "Admin")]
@@ -143,7 +222,7 @@ namespace EatUp.Controllers
             restaurant.IsApproved = true;
             _context.Update(restaurant);
             await _context.SaveChangesAsync();
-
+            TempData["Success"] = "Restaurant approved successfully.";
             return RedirectToAction(nameof(Pending));
         }
 

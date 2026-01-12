@@ -1,0 +1,30 @@
+﻿@model EatUp.Models.ApplicationUser
+
+<h2>Edit Profile</h2>
+<hr />
+
+<form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Full name</label>
+        <input asp-for="FullName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Address</label>
+        <input asp-for="Address" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Phone</label>
+        <input asp-for="PhoneNumber" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-success">
+        Save changes
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        Cancel
+    </a>
+</form>

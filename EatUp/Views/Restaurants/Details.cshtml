@@ -16,16 +16,13 @@
 
     <div class="card-body">
         <h2 class="card-title">@Model.Name</h2>
-        <p class="card-text mb-1 text-muted">@Model.CuisineType</p>
         <p class="card-text mb-1">
             <strong>Address:</strong> @Model.Address
         </p>
         <p class="card-text mb-1">
             <strong>Delivery:</strong> @Model.DeliveryTimeMinutes min • @Model.DeliveryFee.ToString("0.00") lei
         </p>
-        <p class="card-text mt-2">
-            @Model.Description
-        </p>
+        
     </div>
 </div>
 
@@ -65,12 +62,6 @@
                                 Add to cart
                             </a>
 
-                            <a asp-controller="MenuItems"
-                               asp-action="Edit"
-                               asp-route-id="@item.Id"
-                               class="btn btn-sm btn-outline-secondary">
-                                Edit item
-                            </a>
                         </div>
 
                         
@@ -87,11 +78,5 @@ else
 
 <hr />
 <div class="mt-2">
-    @if (User.IsInRole("Restaurant") &&
-    Model.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-    {
-        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-secondary">Edit restaurant</a>
-    }
-
     <a asp-action="Index" class="btn btn-link">Back to restaurants</a>
 </div>

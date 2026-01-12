@@ -4,6 +4,7 @@ using EatUp.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace EatUp.Controllers
 {
@@ -11,10 +12,13 @@ namespace EatUp.Controllers
     {
         private readonly ApplicationDbContext _context;
         private const string CartSessionKey = "Cart";
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public CartController(ApplicationDbContext context)
+        public CartController(ApplicationDbContext context,
+                              UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // =======================
@@ -53,11 +57,15 @@ namespace EatUp.Controllers
                     MenuItemName = menuItem.Name,
                     RestaurantName = menuItem.Restaurant?.Name ?? "",
                     UnitPrice = menuItem.Price,
-                    Quantity = 1
+                    Quantity = 1,
+                    ImageUrl = menuItem.ImageUrl ?? "/images/default-image.png",
+                    DeliveryFee = menuItem.Restaurant?.DeliveryFee ?? 0
                 });
+
             }
 
             SaveCart(cart);
+            TempData["Success"] = "Item added to cart.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -66,6 +74,7 @@ namespace EatUp.Controllers
         // =======================
 
         // GET: /Cart/Checkout
+        [HttpGet]
         public IActionResult Checkout()
         {
             var cart = GetCart();
@@ -84,36 +93,29 @@ namespace EatUp.Controllers
         // POST: /Cart/Checkout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Client")]
-        public async Task<IActionResult> Checkout(
-            string customerName,
-            string customerAddress,
-            string customerPhone)
+        [Authorize] // ⬅️ OBLIGATORIU LOGAT
+        public async Task<IActionResult> CheckoutConfirm()
         {
             var cart = GetCart();
-            if (!cart.Any())
+
+            if (cart == null || !cart.Any())
             {
                 TempData["CartError"] = "Your cart is empty.";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Index");
             }
 
-            if (string.IsNullOrWhiteSpace(customerName) ||
-                string.IsNullOrWhiteSpace(customerAddress) ||
-                string.IsNullOrWhiteSpace(customerPhone))
-            {
-                TempData["CartError"] = "Please fill in all the customer details.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            var total = cart.Sum(c => c.TotalPrice);
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("Login", "Account");
 
             var order = new Order
             {
-                CustomerName = customerName,
-                CustomerAddress = customerAddress,
-                CustomerPhone = customerPhone,
-                TotalPrice = total,
-                CreatedAt = DateTime.Now
+                CustomerName = user.FullName,
+                CustomerAddress = user.Address,
+                CustomerPhone = user.PhoneNumber,
+                TotalPrice = cart.Sum(c => c.TotalPrice),
+                CreatedAt = DateTime.Now,
+                UserId = user.Id
             };
 
             _context.Orders.Add(order);
@@ -121,23 +123,22 @@ namespace EatUp.Controllers
 
             foreach (var item in cart)
             {
-                var orderItem = new OrderItem
+                _context.OrderItems.Add(new OrderItem
                 {
                     OrderId = order.Id,
                     MenuItemId = item.MenuItemId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice
-                };
-                _context.OrderItems.Add(orderItem);
+                });
             }
 
             await _context.SaveChangesAsync();
 
-            // golește coșul
             SaveCart(new List<CartItem>());
-
-            return RedirectToAction(nameof(Confirmation), new { id = order.Id });
+            TempData["Success"] = "Your order has been placed successfully.";
+            return RedirectToAction("Confirmation", new { id = order.Id });
         }
+
 
         // =======================
         // CONFIRMATION
@@ -172,7 +173,7 @@ namespace EatUp.Controllers
                 cart.Remove(item);
                 SaveCart(cart);
             }
-
+            TempData["Warning"] = "Item removed from cart.";
             return RedirectToAction(nameof(Index));
         }
 

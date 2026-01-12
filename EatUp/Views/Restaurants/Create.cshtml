@@ -1,5 +1,12 @@
 ﻿@model EatUp.Models.Restaurant
 
+@if (TempData["Debug"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Debug"]
+    </div>
+}
+
 @{
     ViewData["Title"] = "Create";
 }
@@ -17,11 +24,7 @@
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+          
             <div class="form-group">
                 <label asp-for="ImageUrl" class="control-label">Image URL</label>
                 <input asp-for="ImageUrl" class="form-control" />
@@ -32,11 +35,7 @@
                 <input asp-for="Address" class="form-control" />
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CuisineType" class="control-label"></label>
-                <input asp-for="CuisineType" class="form-control" />
-                <span asp-validation-for="CuisineType" class="text-danger"></span>
-            </div>
+          
             <div class="form-group">
                 <label asp-for="DeliveryTimeMinutes" class="control-label"></label>
                 <input asp-for="DeliveryTimeMinutes" class="form-control" />
@@ -47,16 +46,21 @@
                 <input asp-for="DeliveryFee" class="form-control" />
                 <span asp-validation-for="DeliveryFee" class="text-danger"></span>
             </div>
+            <div class="alert alert-info mt-3 mb-3">
+                Complete your restaurant details. You will be able to add menu items
+                and submit your restaurant for approval afterwards.
+            </div>
+
             <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                <input type="submit"
+                       value="Save restaurant details"
+                       class="btn btn-primary" />
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

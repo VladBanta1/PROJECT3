@@ -23,15 +23,101 @@ body {
 
 .restaurant-card-img {
     width: 100%;
-    height: 180px; /* înălțime mică, de „banner” */
-    object-fit: cover; /* taie marginile, nu întinde */
+    height: 180px; 
+    object-fit: cover; 
     border-radius: 0.5rem 0.5rem 0 0;
 }
 
 
 .restaurant-hero-img {
     width: 100%;
-    max-height: 260px; /* mai mic decât înainte */
+    max-height: 260px; 
     object-fit: cover;
 }
 
+/* Elegant alerts – compact */
+.alert-elegant {
+    max-width: 750px;
+    margin: 6px auto; /* 🔽 era 16px */
+    padding: 8px 14px; /* mai compact */
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    position: relative;
+}
+
+
+/* Culori mai soft */
+.alert-success {
+    background-color: #e9f7ef;
+    color: #146c43;
+    border: 1px solid #cceedd;
+}
+
+.alert-danger {
+    background-color: #fdecec;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+}
+
+.alert-warning {
+    background-color: #fff4d6;
+    color: #664d03;
+    border: 1px solid #ffecb5;
+}
+
+.alert-info {
+    background-color: #e7f3ff;
+    color: #084298;
+    border: 1px solid #b6d4fe;
+}
+
+/* Butonul X mai discret */
+.alert-elegant .btn-close {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.hero {
+    min-height: 65vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+    .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 600;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin-bottom: 25px;
+    }
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.auth-wrapper {
+    min-height: 75vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}

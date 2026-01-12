@@ -61,7 +61,7 @@ using (var scope = app.Services.CreateScope())
     var admin = await userManager.FindByEmailAsync(adminEmail);
     if (admin == null)
     {
-        admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true, DisplayName = "Administrator" };
+        admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true, FullName = "Administrator" };
         var result = await userManager.CreateAsync(admin, adminPass);
         if (result.Succeeded)
         {

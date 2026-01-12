@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Collections.Generic;
 
 namespace EatUp.Models
 {
     public class ApplicationUser : IdentityUser
     {
-      
-        public string? DisplayName { get; set; }
+        public string? FullName { get; set; }
 
-        public ICollection<Restaurant>? Restaurants { get; set; }
+        public string? Address { get; set; }
+
+        public Restaurant? Restaurant { get; set; }
     }
 }

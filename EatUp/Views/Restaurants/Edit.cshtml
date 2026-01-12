@@ -18,11 +18,7 @@
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+            
             <div class="form-group">
                 <label asp-for="ImageUrl" class="control-label">Image URL</label>
                 <input asp-for="ImageUrl" class="form-control" />
@@ -33,11 +29,7 @@
                 <input asp-for="Address" class="form-control" />
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CuisineType" class="control-label"></label>
-                <input asp-for="CuisineType" class="form-control" />
-                <span asp-validation-for="CuisineType" class="text-danger"></span>
-            </div>
+            
             <div class="form-group">
                 <label asp-for="DeliveryTimeMinutes" class="control-label"></label>
                 <input asp-for="DeliveryTimeMinutes" class="form-control" />
@@ -56,7 +48,12 @@
 </div>
 
 <div>
-    <a asp-action="Index">Back to List</a>
+    <a asp-action="Manage"
+       asp-controller="Restaurants"
+       class="btn btn-secondary">
+        Back to manage
+    </a>
+
 </div>
 
 @section Scripts {
