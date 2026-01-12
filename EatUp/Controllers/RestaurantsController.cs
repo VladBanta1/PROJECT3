@@ -5,26 +5,29 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EatUp.Data;
 using EatUp.Models;
+using EatUp.Models.ViewModels;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.CodeAnalysis.Elfie.Model.Structures;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
 
 namespace EatUp.Controllers
 {
     public class RestaurantsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public RestaurantsController(ApplicationDbContext context)
+        public RestaurantsController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // =======================
         // PUBLIC (CLIENT)
         // =======================
 
-        // GET: Restaurants
         public async Task<IActionResult> Index()
         {
             var restaurants = await _context.Restaurants
@@ -34,7 +37,6 @@ namespace EatUp.Controllers
             return View(restaurants);
         }
 
-        // GET: Restaurants/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -52,89 +54,56 @@ namespace EatUp.Controllers
         // RESTAURANT ROLE
         // =======================
 
-        // GET: Restaurants/Create
         [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Restaurants/Create
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant")]
-        public async Task<IActionResult> Create(Restaurant restaurant)
+        public async Task<IActionResult> Create(RestaurantFormViewModel model)
         {
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
+                return View(model);
 
-                TempData["Debug"] = string.Join(" | ", errors);
-                return View(restaurant);
+            string imagePath = "/images/placeholder.jpg";
+
+            if (model.ImageFile != null)
+            {
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads/restaurants");
+                Directory.CreateDirectory(uploadsFolder);
+
+                string fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await model.ImageFile.CopyToAsync(stream);
+
+                imagePath = "/uploads/restaurants/" + fileName;
             }
 
-            if (ModelState.IsValid)
+            var restaurant = new Restaurant
             {
-                restaurant.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                restaurant.IsApproved = false;
-                restaurant.IsSubmitted = false;
+                Name = model.Name,
+                Address = model.Address,
+                DeliveryTimeMinutes = model.DeliveryTimeMinutes,
+                DeliveryFee = model.DeliveryFee,
+                ImageUrl = imagePath,
+                OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                IsApproved = false,
+                IsSubmitted = false
+            };
 
-                _context.Restaurants.Add(restaurant);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] =
-           "Restaurant details saved. Please add menu items and submit for approval.";
-
-                return RedirectToAction(nameof(Manage));
-            }
-            return View(restaurant);
-        }
-
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> ViewRestaurant(int id)
-        {
-            var restaurant = await _context.Restaurants
-                .Include(r => r.MenuItems)
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (restaurant == null)
-                return NotFound();
-
-            return View(restaurant);
-        }
-
-
-        [Authorize(Roles = "Restaurant")]
-        public async Task<IActionResult> SubmitForApproval()
-        {
-            var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-
-            var restaurant = await _context.Restaurants
-                .Include(r => r.MenuItems)
-                .FirstOrDefaultAsync(r => r.OwnerId == userId);
-
-            if (restaurant == null)
-                return NotFound();
-
-            if (!restaurant.MenuItems.Any())
-            {
-                TempData["SuccessMessage"] =
-                    "You must add at least one menu item before submitting.";
-                return RedirectToAction("Manage");
-            }
-
-            restaurant.IsSubmitted = true;
+            _context.Restaurants.Add(restaurant);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] =
-                "Restaurant submitted for approval. Please wait for admin review.";
+            TempData["Success"] =
+                "Restaurant details saved. Please add menu items and submit for approval.";
 
-            return RedirectToAction("Manage");
+            return RedirectToAction(nameof(Manage));
         }
-
 
         [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Manage()
@@ -151,10 +120,6 @@ namespace EatUp.Controllers
             return View(restaurant);
         }
 
-
-
-
-        // GET: Restaurants/Edit/5
         [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -163,36 +128,85 @@ namespace EatUp.Controllers
             var restaurant = await _context.Restaurants.FindAsync(id);
             if (restaurant == null) return NotFound();
 
-            // doar owner-ul poate edita
             if (restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            return View(restaurant);
+            var model = new RestaurantFormViewModel
+            {
+                Id = restaurant.Id,
+                Name = restaurant.Name,
+                Address = restaurant.Address,
+                DeliveryTimeMinutes = restaurant.DeliveryTimeMinutes,
+                DeliveryFee = restaurant.DeliveryFee,
+                ExistingImageUrl = restaurant.ImageUrl
+            };
+
+            return View(model);
         }
 
-        // POST: Restaurants/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant")]
-        public async Task<IActionResult> Edit(int id, Restaurant restaurant)
+        public async Task<IActionResult> Edit(RestaurantFormViewModel model)
         {
-            if (id != restaurant.Id) return NotFound();
+            if (!ModelState.IsValid)
+                return View(model);
 
-            var existing = await _context.Restaurants.AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == id);
+            var restaurant = await _context.Restaurants.FindAsync(model.Id);
+            if (restaurant == null) return NotFound();
 
-            if (existing == null) return NotFound();
-
-            if (existing.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+            if (restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            // orice edit necesită re-aprobare
-            restaurant.OwnerId = existing.OwnerId;
+            if (model.ImageFile != null)
+            {
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads/restaurants");
+                Directory.CreateDirectory(uploadsFolder);
+
+                string fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await model.ImageFile.CopyToAsync(stream);
+
+                restaurant.ImageUrl = "/uploads/restaurants/" + fileName;
+            }
+
+            restaurant.Name = model.Name;
+            restaurant.Address = model.Address;
+            restaurant.DeliveryTimeMinutes = model.DeliveryTimeMinutes;
+            restaurant.DeliveryFee = model.DeliveryFee;
             restaurant.IsApproved = false;
 
-            _context.Update(restaurant);
             await _context.SaveChangesAsync();
+
             TempData["Success"] = "Restaurant details updated successfully.";
+            return RedirectToAction(nameof(Manage));
+        }
+
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> SubmitForApproval()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems)
+                .FirstOrDefaultAsync(r => r.OwnerId == userId);
+
+            if (restaurant == null) return NotFound();
+
+            if (!restaurant.MenuItems.Any())
+            {
+                TempData["Error"] =
+                    "You must add at least one menu item before submitting.";
+                return RedirectToAction(nameof(Manage));
+            }
+
+            restaurant.IsSubmitted = true;
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] =
+                "Restaurant submitted for approval. Please wait for admin review.";
 
             return RedirectToAction(nameof(Manage));
         }
@@ -201,18 +215,16 @@ namespace EatUp.Controllers
         // ADMIN ROLE
         // =======================
 
-        // GET: Restaurants/Pending
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Pending()
         {
-            var pendingRestaurants = _context.Restaurants
-                .Where(r => r.IsSubmitted && !r.IsApproved);
+            var pendingRestaurants = await _context.Restaurants
+                .Where(r => r.IsSubmitted && !r.IsApproved)
+                .ToListAsync();
 
-            return View(await pendingRestaurants.ToListAsync());
+            return View(pendingRestaurants);
         }
 
-
-        // POST: Restaurants/Approve/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int id)
         {
@@ -220,39 +232,75 @@ namespace EatUp.Controllers
             if (restaurant == null) return NotFound();
 
             restaurant.IsApproved = true;
-            _context.Update(restaurant);
             await _context.SaveChangesAsync();
+
             TempData["Success"] = "Restaurant approved successfully.";
             return RedirectToAction(nameof(Pending));
         }
+        // =======================
+        // ADMIN – DELETE RESTAURANT
+        // =======================
 
-        // GET: Restaurants/Delete/5
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int id)
         {
-            if (id == null) return NotFound();
-
             var restaurant = await _context.Restaurants
                 .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (restaurant == null) return NotFound();
+            if (restaurant == null)
+                return NotFound();
 
             return View(restaurant);
         }
 
-        // POST: Restaurants/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
+        [HttpPost]
         [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var restaurant = await _context.Restaurants.FindAsync(id);
-            if (restaurant != null)
+            var restaurant = await _context.Restaurants
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restaurant == null)
+                return NotFound();
+
+           
+            if (!string.IsNullOrEmpty(restaurant.ImageUrl) &&
+                restaurant.ImageUrl.StartsWith("/uploads/"))
             {
-                _context.Restaurants.Remove(restaurant);
-                await _context.SaveChangesAsync();
+                var imagePath = Path.Combine(
+                    _env.WebRootPath,
+                    restaurant.ImageUrl.TrimStart('/')
+                );
+
+                if (System.IO.File.Exists(imagePath))
+                    System.IO.File.Delete(imagePath);
             }
-            return RedirectToAction(nameof(Index));
+
+            _context.Restaurants.Remove(restaurant);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Restaurant deleted successfully.";
+
+            return RedirectToAction(nameof(Pending));
         }
+        // =======================
+        // ADMIN – VIEW RESTAURANT DETAILS
+        // =======================
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ViewRestaurant(int id)
+        {
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restaurant == null)
+                return NotFound();
+
+            return View(restaurant);
+        }
+
+
     }
 }

@@ -17,6 +17,9 @@ namespace EatUp.Models
         public ApplicationUser? Owner { get; set; }
         public bool IsSubmitted { get; set; } = false;
         public bool IsApproved { get; set; } = false;
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+
 
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
     }

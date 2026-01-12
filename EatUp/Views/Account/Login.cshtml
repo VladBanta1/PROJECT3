@@ -1,17 +1,43 @@
-﻿
+﻿@{
+    ViewData["Title"] = "Login";
+}
+
 <div class="auth-wrapper">
     <div class="auth-card">
 
         <h2 class="text-center mb-4">Login</h2>
 
-        
+        <form method="post">
 
-<form method="post">
-    <input name="email" class="form-control mb-2" placeholder="Email" />
-    <input name="password" type="password" class="form-control mb-2" placeholder="Password" />
-    <button class="btn btn-primary">Login</button>
-</form>
-        <!-- FORMULARUL TĂU EXISTENT AICI -->
+            <div class="mb-3">
+                <input name="email"
+                       type="email"
+                       class="form-control"
+                       placeholder="Email"
+                       required />
+            </div>
+
+            <div class="mb-3">
+                <input name="password"
+                       type="password"
+                       class="form-control"
+                       placeholder="Password"
+                       required />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Login
+            </button>
+
+        </form>
+
+        <div class="text-center mt-3">
+            <span class="text-muted">Don't have an account?</span>
+            <a asp-controller="Account"
+               asp-action="Register">
+                Register
+            </a>
+        </div>
 
     </div>
 </div>

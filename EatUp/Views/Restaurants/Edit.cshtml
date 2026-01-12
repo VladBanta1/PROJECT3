@@ -1,61 +1,82 @@
-﻿@model EatUp.Models.Restaurant
+﻿@model EatUp.Models.ViewModels.RestaurantFormViewModel
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Restaurant";
 }
 
-<h1>Edit</h1>
+<div class="form-card">
 
-<h4>Restaurant</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            
-            <div class="form-group">
-                <label asp-for="ImageUrl" class="control-label">Image URL</label>
-                <input asp-for="ImageUrl" class="form-control" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Address" class="control-label"></label>
-                <input asp-for="Address" class="form-control" />
-                <span asp-validation-for="Address" class="text-danger"></span>
-            </div>
-            
-            <div class="form-group">
-                <label asp-for="DeliveryTimeMinutes" class="control-label"></label>
-                <input asp-for="DeliveryTimeMinutes" class="form-control" />
-                <span asp-validation-for="DeliveryTimeMinutes" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DeliveryFee" class="control-label"></label>
-                <input asp-for="DeliveryFee" class="form-control" />
-                <span asp-validation-for="DeliveryFee" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
+    <h3 class="mb-4 text-center">Edit Restaurant</h3>
 
-<div>
-    <a asp-action="Manage"
-       asp-controller="Restaurants"
-       class="btn btn-secondary">
-        Back to manage
-    </a>
+    <div asp-validation-summary="ModelOnly"
+         class="alert alert-danger alert-elegant"></div>
+
+    <form asp-action="Edit" enctype="multipart/form-data">
+
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="ExistingImageUrl" />
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <!-- CURRENT IMAGE -->
+        <div class="mb-3">
+            <label class="form-label">Current Image</label><br />
+            <img src="@Model.ExistingImageUrl"
+                 alt="Restaurant image"
+                 class="rounded shadow-sm"
+                 style="max-width: 220px; height: auto;" />
+        </div>
+
+        <!-- NEW IMAGE UPLOAD -->
+        <div class="mb-3">
+            <label asp-for="ImageFile" class="form-label">Change Image</label>
+            <input asp-for="ImageFile"
+                   type="file"
+                   class="form-control"
+                   accept="image/*" />
+            <span asp-validation-for="ImageFile" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DeliveryTimeMinutes" class="form-label"></label>
+            <input asp-for="DeliveryTimeMinutes" class="form-control" />
+            <span asp-validation-for="DeliveryTimeMinutes" class="text-danger"></span>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="DeliveryFee" class="form-label"></label>
+            <input asp-for="DeliveryFee" class="form-control" />
+            <span asp-validation-for="DeliveryFee" class="text-danger"></span>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a asp-controller="Restaurants"
+               asp-action="Manage"
+               class="btn btn-outline-secondary">
+                Back to manage
+            </a>
+
+            <button type="submit" class="btn btn-primary">
+                Save changes
+            </button>
+        </div>
+
+    </form>
 
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

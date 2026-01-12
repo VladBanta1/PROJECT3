@@ -10,17 +10,17 @@
     <link rel="stylesheet" href="~/EatUp.styles.css" asp-append-version="true" />
 </head>
 
-<body>
-    
+<body class="d-flex flex-column min-vh-100">
 
-
+    <!-- NAVBAR -->
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-1">
             <div class="container-fluid">
 
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">EatUp</a>
 
-                <button class="navbar-toggler" type="button"
+                <button class="navbar-toggler"
+                        type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#navbarMain"
                         aria-controls="navbarMain"
@@ -31,24 +31,16 @@
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between" id="navbarMain">
 
-                    <!-- LEFT SIDE -->
+                    <!-- LEFT -->
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Home"
-                               asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
-
                         <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Restaurants"
-                               asp-action="Index">Restaurants</a>
+                            <a class="nav-link text-dark" asp-controller="Restaurants" asp-action="Index">Restaurants</a>
                         </li>
-
                         <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Cart"
-                               asp-action="Index">Cart</a>
+                            <a class="nav-link text-dark" asp-controller="Cart" asp-action="Index">Cart</a>
                         </li>
 
                         @if (User.IsInRole("Admin"))
@@ -63,12 +55,10 @@
                         }
                     </ul>
 
-                    <!-- RIGHT SIDE -->
+                    <!-- RIGHT -->
                     <ul class="navbar-nav ms-auto">
-
                         @if (User.Identity.IsAuthenticated)
                         {
-                            /* ===== RESTAURANT ===== */
                             if (User.IsInRole("Restaurant"))
                             {
                                 <li class="nav-item">
@@ -78,51 +68,34 @@
                                         Manage
                                     </a>
                                 </li>
-
                                 <li class="nav-item">
-                                    <span class="nav-link text-dark">
-                                        @User.Identity.Name
-                                    </span>
+                                    <span class="nav-link text-dark">@User.Identity.Name</span>
                                 </li>
-
                                 <li class="nav-item">
                                     <form asp-controller="Account"
                                           asp-action="Logout"
-                                          method="post"
-                                          class="d-inline">
-                                        <button class="btn btn-link nav-link text-dark">
-                                            Logout
-                                        </button>
+                                          method="post">
+                                        <button class="btn btn-link nav-link text-dark">Logout</button>
                                     </form>
                                 </li>
                             }
-                            /* ===== ADMIN ===== */
                             else if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <span class="nav-link text-dark">
-                                        @User.Identity.Name
-                                    </span>
+                                    <span class="nav-link text-dark">@User.Identity.Name</span>
                                 </li>
-
                                 <li class="nav-item">
                                     <form asp-controller="Account"
                                           asp-action="Logout"
-                                          method="post"
-                                          class="d-inline">
-                                        <button class="btn btn-link nav-link text-dark">
-                                            Logout
-                                        </button>
+                                          method="post">
+                                        <button class="btn btn-link nav-link text-dark">Logout</button>
                                     </form>
                                 </li>
                             }
-                            /* ===== CLIENT ===== */
                             else
                             {
                                 <li class="nav-item">
-                                    <span class="nav-link text-dark">
-                                        @User.Identity.Name
-                                    </span>
+                                    <span class="nav-link text-dark">@User.Identity.Name</span>
                                 </li>
 
                                 <li class="nav-item dropdown">
@@ -144,9 +117,7 @@
                                             <form asp-controller="Account"
                                                   asp-action="Logout"
                                                   method="post">
-                                                <button class="dropdown-item text-danger">
-                                                    Logout
-                                                </button>
+                                                <button class="dropdown-item text-danger">Logout</button>
                                             </form>
                                         </li>
                                     </ul>
@@ -170,74 +141,59 @@
                                 </a>
                             </li>
                         }
-
                     </ul>
-
 
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="container">
+    <!-- MAIN CONTENT -->
+    <main class="flex-fill">
+        <div class="container pb-3">
 
-        <!-- ALERTS -->
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success alert-elegant alert-dismissible fade show" role="alert">
-                @TempData["Success"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+            <!-- ALERTS -->
+            @foreach (var key in new[] { "Success", "Error", "Warning", "Info" })
+            {
+                if (TempData[key] != null)
+                {
+                    <div class="alert alert-elegant alert-dismissible fade show
+                                @(key == "Success" ? "alert-success" :
+                                  key == "Error" ? "alert-danger" :
+                                  key == "Warning" ? "alert-warning" :
+                                  "alert-info")"
+                         role="alert">
+                        @TempData[key]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+            }
 
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger alert-elegant alert-dismissible fade show" role="alert">
-                @TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        @if (TempData["Warning"] != null)
-        {
-            <div class="alert alert-warning alert-elegant alert-dismissible fade show" role="alert">
-                @TempData["Warning"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        @if (TempData["Info"] != null)
-        {
-            <div class="alert alert-info alert-elegant alert-dismissible fade show" role="alert">
-                @TempData["Info"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-    <div class="container">
-        <main role="main" class="pb-3">
             @RenderBody()
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
+    <!-- FOOTER -->
+    <footer class="border-top text-muted">
+        <div class="container text-center py-3">
             &copy; 2025 - EatUp
         </div>
     </footer>
 
+    <!-- SCRIPTS -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     <script>
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(a => {
-                new bootstrap.Alert(a).close();
+                bootstrap.Alert.getOrCreateInstance(a).close();
             });
         }, 4000);
     </script>
 
-
     @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>
