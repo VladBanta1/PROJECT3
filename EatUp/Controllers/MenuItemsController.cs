@@ -89,7 +89,9 @@ namespace EatUp.Controllers
             {
                 _context.Add(menuItem);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                TempData["Success"] = "Menu item added successfully.";
+
+                return RedirectToAction("Manage", "Restaurants");
             }
 
             ViewData["RestaurantId"] = new SelectList(
@@ -134,24 +136,34 @@ namespace EatUp.Controllers
         [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Edit(int id, MenuItem menuItem)
         {
-            if (id != menuItem.Id) return NotFound();
+            if (id != menuItem.Id)
+                return NotFound();
 
-            var existing = await _context.MenuItems
+            var existingItem = await _context.MenuItems
                 .Include(m => m.Restaurant)
-                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (existing == null) return NotFound();
+            if (existingItem == null)
+                return NotFound();
 
-            if (existing.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (existingItem.Restaurant.OwnerId != userId)
                 return Forbid();
 
-            _context.Update(menuItem);
+            if (!ModelState.IsValid)
+                return View(menuItem);
+
+            // ✅ ACTUALIZĂM DOAR CÂMPURILE EDITABILE
+            existingItem.Name = menuItem.Name;
+            existingItem.Description = menuItem.Description;
+            existingItem.Price = menuItem.Price;
+            existingItem.ImageUrl = menuItem.ImageUrl;
+
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Menu item updated successfully.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Manage", "Restaurants");
         }
-
         // =======================
         // ADMIN / RESTAURANT DELETE
         // =======================
@@ -194,8 +206,9 @@ namespace EatUp.Controllers
 
             _context.MenuItems.Remove(menuItem);
             await _context.SaveChangesAsync();
+            TempData["Warning"] = "Menu item deleted.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Manage", "Restaurants");
         }
 
         private bool MenuItemExists(int id)

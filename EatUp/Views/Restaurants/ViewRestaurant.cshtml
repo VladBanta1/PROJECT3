@@ -1,0 +1,55 @@
+﻿@model EatUp.Models.Restaurant
+
+<h2>Restaurant Review</h2>
+
+<hr />
+
+<p><strong>Name:</strong> @Model.Name</p>
+<p><strong>Address:</strong> @Model.Address</p>
+<p><strong>Delivery Fee:</strong> @Model.DeliveryFee lei</p>
+<p><strong>Delivery Time:</strong> @Model.DeliveryTimeMinutes min</p>
+
+@if (!string.IsNullOrEmpty(Model.ImageUrl))
+{
+    <img src="@Model.ImageUrl" class="img-fluid mb-3" style="max-height:300px;" />
+}
+
+<h4>Menu Items</h4>
+
+@if (!Model.MenuItems.Any())
+{
+    <p>No menu items.</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.MenuItems)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@item.Description</td>
+                    <td>@item.Price lei</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a asp-action="Approve"
+   asp-route-id="@Model.Id"
+   class="btn btn-success">
+    Approve Restaurant
+</a>
+
+<a asp-action="Pending"
+   class="btn btn-secondary ms-2">
+    Back
+</a>

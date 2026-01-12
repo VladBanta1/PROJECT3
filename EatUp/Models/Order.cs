@@ -7,6 +7,9 @@
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerAddress { get; set; } = string.Empty;
         public string CustomerPhone { get; set; } = string.Empty;
+        public string? UserId { get; set; }
+        public ApplicationUser? User { get; set; }
+
 
         public decimal TotalPrice { get; set; }
         public DateTime CreatedAt { get; set; }

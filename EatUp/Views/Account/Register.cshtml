@@ -1,5 +1,62 @@
-﻿<form method="post">
-    <input name="email" class="form-control mb-2" placeholder="Email" />
-    <input name="password" type="password" class="form-control mb-2" placeholder="Password" />
-    <button class="btn btn-success">Register</button>
+﻿@model EatUp.Models.ViewModels.RegisterViewModel
+
+<h2>Register</h2>
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger alert-elegant"></div>
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <h2 class="text-center mb-4">Login</h2>
+
+       
+
+
+<form method="post">
+    <div class="mb-3">
+        <label>Account type</label>
+        <select asp-for="AccountType" class="form-select" id="accountType">
+            <option value="Client">Client</option>
+            <option value="Restaurant">Restaurant</option>
+        </select>
+    </div>
+
+    <input asp-for="Email" class="form-control mb-2" placeholder="Email" />
+    <input asp-for="Password" class="form-control mb-2" type="password" placeholder="Password" />
+    <input asp-for="FullName" class="form-control mb-2" placeholder="Full name" />
+    <input asp-for="PhoneNumber" class="form-control mb-2" placeholder="Phone number" />
+
+    <!-- CLIENT -->
+    <div id="clientFields">
+        <input asp-for="Address" class="form-control mb-2" placeholder="Delivery address" />
+    </div>
+
+    <!-- RESTAURANT -->
+    <div id="restaurantFields" style="display:none;">
+        <hr />
+        <input asp-for="RestaurantName" class="form-control mb-2" placeholder="Restaurant name" />
+        <input asp-for="RestaurantAddress" class="form-control mb-2" placeholder="Restaurant address" />
+    </div>
+
+    <button class="btn btn-primary">Register</button>
 </form>
+      
+
+    </div>
+</div>
+@section Scripts {
+    <script>
+        const select = document.getElementById("accountType");
+        const restaurantFields = document.getElementById("restaurantFields");
+        const clientFields = document.getElementById("clientFields");
+
+        function toggleFields() {
+            const isRestaurant = select.value === "Restaurant";
+            restaurantFields.style.display = isRestaurant ? "block" : "none";
+            clientFields.style.display = isRestaurant ? "none" : "block";
+        }
+
+        select.addEventListener("change", toggleFields);
+        toggleFields();
+    </script>
+}

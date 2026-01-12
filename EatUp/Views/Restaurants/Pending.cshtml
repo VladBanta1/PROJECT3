@@ -31,6 +31,11 @@ else
                     <td>@restaurant.Address</td>
                     <td>@restaurant.DeliveryFee lei</td>
                     <td>
+                        <a asp-action="ViewRestaurant"
+                           asp-route-id="@restaurant.Id"
+                           class="btn btn-sm btn-info">
+                            View
+                        </a>
                         <a asp-action="Approve"
                            asp-route-id="@restaurant.Id"
                            class="btn btn-success btn-sm">

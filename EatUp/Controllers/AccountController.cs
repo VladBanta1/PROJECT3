@@ -1,65 +1,132 @@
-﻿using EatUp.Models;
+﻿using EatUp.Data;
+using EatUp.Models;
+using EatUp.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-public class AccountController : Controller
+namespace EatUp.Controllers
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-
-    public AccountController(UserManager<ApplicationUser> userManager,
-                             SignInManager<ApplicationUser> signInManager)
+    public class AccountController : Controller
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-    }
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ApplicationDbContext _context;
 
-    public IActionResult Login() => View();
-    public IActionResult Register() => View();
-
-    [HttpPost]
-    public async Task<IActionResult> Login(string email, string password)
-    {
-        var result = await _signInManager.PasswordSignInAsync(
-            email, password, false, false);
-
-        if (result.Succeeded)
-            return RedirectToAction("Index", "Home");
-
-        ModelState.AddModelError("", "Invalid login");
-        return View();
-    }
-
-
-
-    [HttpPost]
-    public async Task<IActionResult> Register(string email, string password)
-    {
-        var user = new ApplicationUser
+        public AccountController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ApplicationDbContext context)
         {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true
-        };
-
-        var result = await _userManager.CreateAsync(user, password);
-        if (result.Succeeded)
-        {
-            await _userManager.AddToRoleAsync(user, "Client");
-            await _signInManager.SignInAsync(user, false);
-            return RedirectToAction("Index", "Home");
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _context = context;
         }
 
-        foreach (var e in result.Errors)
-            ModelState.AddModelError("", e.Description);
+        // =======================
+        // LOGIN
+        // =======================
 
-        return View();
-    }
+        public IActionResult Login() => View();
 
-    [HttpPost]
-    public async Task<IActionResult> Logout()
-    {
-        await _signInManager.SignOutAsync();
-        return RedirectToAction("Index", "Home");
+        [HttpPost]
+        public async Task<IActionResult> Login(string email, string password)
+        {
+            var result = await _signInManager.PasswordSignInAsync(
+                email, password, false, false);
+
+            if (result.Succeeded)
+            {
+                TempData["Success"] = "You have logged in successfully.";
+                return RedirectToAction("Index", "Home");
+                
+            }
+            else
+            {
+
+
+                ModelState.AddModelError("", "Invalid login");
+                TempData["Error"] = "Invalid email or password.";
+
+                return View();
+            }
+        }
+
+        // =======================
+        // REGISTER
+        // =======================
+
+        public IActionResult Register()
+        {
+            return View(new RegisterViewModel());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                FullName = model.FullName,
+                PhoneNumber = model.PhoneNumber,
+                Address = model.AccountType == "Client" ? model.Address : null,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+            {
+                foreach (var e in result.Errors)
+                    ModelState.AddModelError("", e.Description);
+
+               
+
+                return View(model);
+            }
+
+
+            if (model.AccountType == "Restaurant")
+            {
+                await _userManager.AddToRoleAsync(user, "Restaurant");
+
+                var restaurant = new Restaurant
+                {
+                    Name = model.RestaurantName!,
+                    Address = model.RestaurantAddress!,
+                    OwnerId = user.Id,
+                    IsApproved = false
+                };
+
+                _context.Restaurants.Add(restaurant);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                await _userManager.AddToRoleAsync(user, "Client");
+            }
+            TempData["Success"] = "Account created successfully.";
+            await _signInManager.SignInAsync(user, false);
+            return RedirectToAction("Index", "Home");
+            
+
+        }
+
+        // =======================
+        // LOGOUT
+        // =======================
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            TempData["Info"] = "You have been logged out.";
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
+            
+
+        }
     }
 }

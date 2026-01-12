@@ -65,7 +65,12 @@
 
             <div class="form-group mt-3">
                 <input type="submit" value="Create" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
+                <a asp-controller="Restaurants"
+                   asp-action="Manage"
+                   class="btn btn-secondary">
+                    Back to manage
+                </a>
+
             </div>
         </form>
     </div>
