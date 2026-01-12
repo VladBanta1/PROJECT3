@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EatUp.Data;
 using EatUp.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EatUp.Controllers
 {
@@ -19,47 +19,56 @@ namespace EatUp.Controllers
             _context = context;
         }
 
+        // =======================
+        // PUBLIC (CLIENT)
+        // =======================
+
         // GET: Restaurants
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Restaurants.ToListAsync());
+            var restaurants = await _context.Restaurants
+                .Where(r => r.IsApproved)
+                .ToListAsync();
+
+            return View(restaurants);
         }
 
         // GET: Restaurants/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Restaurants == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var restaurant = await _context.Restaurants
                 .Include(r => r.MenuItems)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsApproved);
 
-            if (restaurant == null)
-            {
-                return NotFound();
-            }
+            if (restaurant == null) return NotFound();
 
             return View(restaurant);
         }
 
+        // =======================
+        // RESTAURANT ROLE
+        // =======================
+
         // GET: Restaurants/Create
+        [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: Restaurants/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Description,ImageUrl,Address,CuisineType,DeliveryTimeMinutes,DeliveryFee")] Restaurant restaurant)
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Create(Restaurant restaurant)
         {
             if (ModelState.IsValid)
             {
+                restaurant.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                restaurant.IsApproved = false;
+
                 _context.Add(restaurant);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -67,72 +76,87 @@ namespace EatUp.Controllers
             return View(restaurant);
         }
 
-
         // GET: Restaurants/Edit/5
+        [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var restaurant = await _context.Restaurants.FindAsync(id);
-            if (restaurant == null)
-            {
-                return NotFound();
-            }
+            if (restaurant == null) return NotFound();
+
+            // doar owner-ul poate edita
+            if (restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
             return View(restaurant);
         }
 
         // POST: Restaurants/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,ImageUrl,Address,CuisineType,DeliveryTimeMinutes,DeliveryFee")] Restaurant restaurant)
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Edit(int id, Restaurant restaurant)
         {
-            if (id != restaurant.Id)
-            {
-                return NotFound();
-            }
+            if (id != restaurant.Id) return NotFound();
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(restaurant);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!RestaurantExists(restaurant.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(restaurant);
+            var existing = await _context.Restaurants.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (existing == null) return NotFound();
+
+            if (existing.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
+            // orice edit necesită re-aprobare
+            restaurant.OwnerId = existing.OwnerId;
+            restaurant.IsApproved = false;
+
+            _context.Update(restaurant);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // =======================
+        // ADMIN ROLE
+        // =======================
+
+        // GET: Restaurants/Pending
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Pending()
+        {
+            var pending = await _context.Restaurants
+                .Where(r => !r.IsApproved)
+                .ToListAsync();
+
+            return View(pending);
+        }
+
+        // POST: Restaurants/Approve/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var restaurant = await _context.Restaurants.FindAsync(id);
+            if (restaurant == null) return NotFound();
+
+            restaurant.IsApproved = true;
+            _context.Update(restaurant);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Pending));
         }
 
         // GET: Restaurants/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var restaurant = await _context.Restaurants
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (restaurant == null)
-            {
-                return NotFound();
-            }
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (restaurant == null) return NotFound();
 
             return View(restaurant);
         }
@@ -140,21 +164,16 @@ namespace EatUp.Controllers
         // POST: Restaurants/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var restaurant = await _context.Restaurants.FindAsync(id);
             if (restaurant != null)
             {
                 _context.Restaurants.Remove(restaurant);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool RestaurantExists(int id)
-        {
-            return _context.Restaurants.Any(e => e.Id == id);
         }
     }
 }

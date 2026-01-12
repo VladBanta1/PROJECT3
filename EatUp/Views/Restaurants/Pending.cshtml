@@ -1,0 +1,48 @@
+﻿@model IEnumerable<EatUp.Models.Restaurant>
+
+@{
+    ViewData["Title"] = "Pending Restaurants";
+}
+
+<h2 class="mb-4">Pending Restaurants</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        No restaurants pending approval.
+    </div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Delivery Fee</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var restaurant in Model)
+            {
+                <tr>
+                    <td>@restaurant.Name</td>
+                    <td>@restaurant.Address</td>
+                    <td>@restaurant.DeliveryFee lei</td>
+                    <td>
+                        <a asp-action="Approve"
+                           asp-route-id="@restaurant.Id"
+                           class="btn btn-success btn-sm">
+                            Approve
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a asp-action="Index" class="btn btn-secondary mt-3">
+    Back to Restaurants
+</a>

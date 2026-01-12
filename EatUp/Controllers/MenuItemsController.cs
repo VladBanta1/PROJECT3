@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EatUp.Data;
 using EatUp.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace EatUp.Controllers
 {
@@ -19,49 +20,71 @@ namespace EatUp.Controllers
             _context = context;
         }
 
-        // GET: MenuItems
+        // =======================
+        // PUBLIC (CLIENT)
+        // =======================
+
+        // GET: MenuItems (doar din restaurante aprobate)
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.MenuItems
-                                               .Include(m => m.Restaurant);
-            return View(await applicationDbContext.ToListAsync());
+            var menuItems = await _context.MenuItems
+                .Include(m => m.Restaurant)
+                .Where(m => m.Restaurant.IsApproved)
+                .ToListAsync();
+
+            return View(menuItems);
         }
 
         // GET: MenuItems/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var menuItem = await _context.MenuItems
                 .Include(m => m.Restaurant)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(m =>
+                    m.Id == id && m.Restaurant.IsApproved);
 
-            if (menuItem == null)
-            {
-                return NotFound();
-            }
+            if (menuItem == null) return NotFound();
 
             return View(menuItem);
         }
 
+        // =======================
+        // RESTAURANT ROLE
+        // =======================
+
         // GET: MenuItems/Create
+        [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
         {
-            // dropdown cu numele restaurantelor
-            ViewData["RestaurantId"] = new SelectList(_context.Restaurants, "Id", "Name");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // restaurantul vede doar restaurantele LUI
+            ViewData["RestaurantId"] = new SelectList(
+                _context.Restaurants.Where(r => r.OwnerId == userId),
+                "Id",
+                "Name"
+            );
+
             return View();
         }
 
         // POST: MenuItems/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,RestaurantId,Name,Description,ImageUrl,Price")] MenuItem menuItem)
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Create(MenuItem menuItem)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var restaurant = await _context.Restaurants
+                .FirstOrDefaultAsync(r => r.Id == menuItem.RestaurantId);
+
+            // securitate: doar owner-ul poate adăuga
+            if (restaurant == null || restaurant.OwnerId != userId)
+                return Forbid();
+
             if (ModelState.IsValid)
             {
                 _context.Add(menuItem);
@@ -69,83 +92,86 @@ namespace EatUp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // reîncărcăm dropdown-ul cu nume, nu cu Id
-            ViewData["RestaurantId"] = new SelectList(_context.Restaurants, "Id", "Name", menuItem.RestaurantId);
+            ViewData["RestaurantId"] = new SelectList(
+                _context.Restaurants.Where(r => r.OwnerId == userId),
+                "Id",
+                "Name",
+                menuItem.RestaurantId
+            );
+
             return View(menuItem);
         }
 
         // GET: MenuItems/Edit/5
+        [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.MenuItems == null)
-            {
-                return NotFound();
-            }
-
-            var menuItem = await _context.MenuItems.FindAsync(id);
-            if (menuItem == null)
-            {
-                return NotFound();
-            }
-
-            ViewData["RestaurantId"] = new SelectList(_context.Restaurants, "Id", "Name", menuItem.RestaurantId);
-            return View(menuItem);
-        }
-
-        // POST: MenuItems/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,RestaurantId,Name,Description,ImageUrl,Price")] MenuItem menuItem)
-        {
-            if (id != menuItem.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(menuItem);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!MenuItemExists(menuItem.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-
-            // iarăși, dropdown cu nume, nu Id
-            ViewData["RestaurantId"] = new SelectList(_context.Restaurants, "Id", "Name", menuItem.RestaurantId);
-            return View(menuItem);
-        }
-
-        // GET: MenuItems/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var menuItem = await _context.MenuItems
                 .Include(m => m.Restaurant)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (menuItem == null)
-            {
-                return NotFound();
-            }
+            if (menuItem == null) return NotFound();
+
+            // doar owner-ul restaurantului poate edita
+            if (menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
+            ViewData["RestaurantId"] = new SelectList(
+                _context.Restaurants.Where(r => r.OwnerId == menuItem.Restaurant.OwnerId),
+                "Id",
+                "Name",
+                menuItem.RestaurantId
+            );
+
+            return View(menuItem);
+        }
+
+        // POST: MenuItems/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Edit(int id, MenuItem menuItem)
+        {
+            if (id != menuItem.Id) return NotFound();
+
+            var existing = await _context.MenuItems
+                .Include(m => m.Restaurant)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (existing == null) return NotFound();
+
+            if (existing.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
+            _context.Update(menuItem);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // =======================
+        // ADMIN / RESTAURANT DELETE
+        // =======================
+
+        // GET: MenuItems/Delete/5
+        [Authorize(Roles = "Restaurant,Admin")]
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var menuItem = await _context.MenuItems
+                .Include(m => m.Restaurant)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (menuItem == null) return NotFound();
+
+            // restaurant poate șterge DOAR propriile item-uri
+            if (User.IsInRole("Restaurant") &&
+                menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
 
             return View(menuItem);
         }
@@ -153,15 +179,22 @@ namespace EatUp.Controllers
         // POST: MenuItems/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Restaurant,Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var menuItem = await _context.MenuItems.FindAsync(id);
-            if (menuItem != null)
-            {
-                _context.MenuItems.Remove(menuItem);
-            }
+            var menuItem = await _context.MenuItems
+                .Include(m => m.Restaurant)
+                .FirstOrDefaultAsync(m => m.Id == id);
 
+            if (menuItem == null) return NotFound();
+
+            if (User.IsInRole("Restaurant") &&
+                menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+                return Forbid();
+
+            _context.MenuItems.Remove(menuItem);
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

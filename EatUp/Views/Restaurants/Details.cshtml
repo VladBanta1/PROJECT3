@@ -87,6 +87,11 @@ else
 
 <hr />
 <div class="mt-2">
-    <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-secondary">Edit restaurant</a>
+    @if (User.IsInRole("Restaurant") &&
+    Model.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-secondary">Edit restaurant</a>
+    }
+
     <a asp-action="Index" class="btn btn-link">Back to restaurants</a>
 </div>
