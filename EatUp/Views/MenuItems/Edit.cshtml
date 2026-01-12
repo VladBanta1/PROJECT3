@@ -1,61 +1,84 @@
-﻿@model EatUp.Models.MenuItem
+﻿@model EatUp.Models.ViewModels.MenuItemFormViewModel
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Menu Item";
 }
 
-<h1>Edit</h1>
+<div class="form-card">
 
-<h4>Menu Item</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <h3 class="mb-4 text-center">Edit Menu Item</h3>
 
-            <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly"
+         class="alert alert-danger alert-elegant"></div>
 
-           
+    <form asp-action="Edit"
+          method="post"
+          enctype="multipart/form-data">
 
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="RestaurantId" />
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <input asp-for="Description" class="form-control" />
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ExistingImageUrl))
+        {
+            <div class="mb-3 text-center">
+                <label class="form-label fw-semibold d-block mb-2">
+                    Current image
+                </label>
+
+                <img src="@Model.ExistingImageUrl"
+                     alt="Current menu item image"
+                     class="img-thumbnail"
+                     style="max-height: 160px;" />
             </div>
+        }
 
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
 
-            <div class="form-group">
-                <label asp-for="ImageUrl" class="control-label">Image URL</label>
-                <input asp-for="ImageUrl" class="form-control" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
-            </div>
+        <!-- 🔥 UPLOAD POZĂ NOUĂ -->
+        <div class="mb-3">
+            <label asp-for="ImageFile" class="form-label">Change image</label>
+            <input asp-for="ImageFile"
+                   type="file"
+                   class="form-control" />
+            <span asp-validation-for="ImageFile" class="text-danger"></span>
+            <small class="text-muted">
+                Leave empty to keep the current image.
+            </small>
+        </div>
 
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
+        <div class="mb-4">
+            <label asp-for="Price" class="form-label"></label>
+            <input asp-for="Price" class="form-control" />
+            <span asp-validation-for="Price" class="text-danger"></span>
+        </div>
 
-            <div class="form-group mt-3">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-controller="Restaurants"
-                   asp-action="Manage"
-                   class="btn btn-secondary ms-2">
-                    Back to Manage
-                </a>
+        <div class="d-flex justify-content-between">
+            <a asp-controller="Restaurants"
+               asp-action="Manage"
+               class="btn btn-outline-secondary">
+                Back to manage
+            </a>
 
-            </div>
-        </form>
-    </div>
+            <button type="submit"
+                    class="btn btn-primary">
+                Save changes
+            </button>
+        </div>
+
+    </form>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <partial name="_ValidationScriptsPartial" />
 }

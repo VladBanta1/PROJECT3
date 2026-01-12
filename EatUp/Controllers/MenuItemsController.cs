@@ -1,30 +1,34 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using EatUp.Data;
 using EatUp.Models;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using EatUp.Models.ViewModels;
 
 namespace EatUp.Controllers
 {
     public class MenuItemsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public MenuItemsController(ApplicationDbContext context)
+        public MenuItemsController(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // =======================
         // PUBLIC (CLIENT)
         // =======================
 
-        // GET: MenuItems (doar din restaurante aprobate)
         public async Task<IActionResult> Index()
         {
             var menuItems = await _context.MenuItems
@@ -35,7 +39,6 @@ namespace EatUp.Controllers
             return View(menuItems);
         }
 
-        // GET: MenuItems/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -54,57 +57,78 @@ namespace EatUp.Controllers
         // RESTAURANT ROLE
         // =======================
 
-        // GET: MenuItems/Create
         [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // restaurantul vede doar restaurantele LUI
             ViewData["RestaurantId"] = new SelectList(
                 _context.Restaurants.Where(r => r.OwnerId == userId),
                 "Id",
                 "Name"
             );
 
-            return View();
+            return View(new MenuItemFormViewModel());
         }
 
-        // POST: MenuItems/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant")]
-        public async Task<IActionResult> Create(MenuItem menuItem)
+        public async Task<IActionResult> Create(MenuItemFormViewModel model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var restaurant = await _context.Restaurants
-                .FirstOrDefaultAsync(r => r.Id == menuItem.RestaurantId);
+                .FirstOrDefaultAsync(r => r.Id == model.RestaurantId);
 
-            // securitate: doar owner-ul poate adăuga
             if (restaurant == null || restaurant.OwnerId != userId)
                 return Forbid();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(menuItem);
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "Menu item added successfully.";
+                ViewData["RestaurantId"] = new SelectList(
+                    _context.Restaurants.Where(r => r.OwnerId == userId),
+                    "Id",
+                    "Name",
+                    model.RestaurantId
+                );
 
-                return RedirectToAction("Manage", "Restaurants");
+                return View(model);
             }
 
-            ViewData["RestaurantId"] = new SelectList(
-                _context.Restaurants.Where(r => r.OwnerId == userId),
-                "Id",
-                "Name",
-                menuItem.RestaurantId
-            );
+            string imagePath = "/images/placeholder-food.jpg";
 
-            return View(menuItem);
+            if (model.ImageFile != null)
+            {
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads/menu-items");
+                Directory.CreateDirectory(uploadsFolder);
+
+                string fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await model.ImageFile.CopyToAsync(stream);
+
+                imagePath = "/uploads/menu-items/" + fileName;
+            }
+
+            var menuItem = new MenuItem
+            {
+                Name = model.Name,
+                Description = model.Description,
+                Price = model.Price,
+                RestaurantId = model.RestaurantId,
+                ImageUrl = imagePath
+            };
+
+            _context.MenuItems.Add(menuItem);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Menu item added successfully.";
+
+            return RedirectToAction("Manage", "Restaurants");
         }
 
-        // GET: MenuItems/Edit/5
         [Authorize(Roles = "Restaurant")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -116,59 +140,77 @@ namespace EatUp.Controllers
 
             if (menuItem == null) return NotFound();
 
-            // doar owner-ul restaurantului poate edita
             if (menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            ViewData["RestaurantId"] = new SelectList(
-                _context.Restaurants.Where(r => r.OwnerId == menuItem.Restaurant.OwnerId),
-                "Id",
-                "Name",
-                menuItem.RestaurantId
-            );
+            var model = new MenuItemFormViewModel
+            {
+                Id = menuItem.Id,
+                RestaurantId = menuItem.RestaurantId,
+                Name = menuItem.Name,
+                Description = menuItem.Description,
+                Price = menuItem.Price,
+                ExistingImageUrl = menuItem.ImageUrl
+            };
 
-            return View(menuItem);
+            return View(model);
         }
 
-        // POST: MenuItems/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant")]
-        public async Task<IActionResult> Edit(int id, MenuItem menuItem)
+        public async Task<IActionResult> Edit(MenuItemFormViewModel model)
         {
-            if (id != menuItem.Id)
-                return NotFound();
+            if (!ModelState.IsValid)
+                return View(model);
 
-            var existingItem = await _context.MenuItems
+            var menuItem = await _context.MenuItems
                 .Include(m => m.Restaurant)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(m => m.Id == model.Id);
 
-            if (existingItem == null)
-                return NotFound();
+            if (menuItem == null) return NotFound();
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (existingItem.Restaurant.OwnerId != userId)
+            if (menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            if (!ModelState.IsValid)
-                return View(menuItem);
+            if (model.ImageFile != null)
+            {
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads/menu-items");
+                Directory.CreateDirectory(uploadsFolder);
 
-            // ✅ ACTUALIZĂM DOAR CÂMPURILE EDITABILE
-            existingItem.Name = menuItem.Name;
-            existingItem.Description = menuItem.Description;
-            existingItem.Price = menuItem.Price;
-            existingItem.ImageUrl = menuItem.ImageUrl;
+                string fileName = Guid.NewGuid() + Path.GetExtension(model.ImageFile.FileName);
+                string filePath = Path.Combine(uploadsFolder, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await model.ImageFile.CopyToAsync(stream);
+
+                // șterge poza veche
+                if (!string.IsNullOrEmpty(menuItem.ImageUrl) &&
+                    menuItem.ImageUrl.StartsWith("/uploads/"))
+                {
+                    var oldPath = Path.Combine(_env.WebRootPath, menuItem.ImageUrl.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                menuItem.ImageUrl = "/uploads/menu-items/" + fileName;
+            }
+
+            menuItem.Name = model.Name;
+            menuItem.Description = model.Description;
+            menuItem.Price = model.Price;
 
             await _context.SaveChangesAsync();
+
             TempData["Success"] = "Menu item updated successfully.";
 
             return RedirectToAction("Manage", "Restaurants");
         }
+
         // =======================
-        // ADMIN / RESTAURANT DELETE
+        // DELETE (ADMIN / RESTAURANT)
         // =======================
 
-        // GET: MenuItems/Delete/5
         [Authorize(Roles = "Restaurant,Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -180,7 +222,6 @@ namespace EatUp.Controllers
 
             if (menuItem == null) return NotFound();
 
-            // restaurant poate șterge DOAR propriile item-uri
             if (User.IsInRole("Restaurant") &&
                 menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
@@ -188,8 +229,7 @@ namespace EatUp.Controllers
             return View(menuItem);
         }
 
-        // POST: MenuItems/Delete/5
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant,Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -204,16 +244,20 @@ namespace EatUp.Controllers
                 menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
+            if (!string.IsNullOrEmpty(menuItem.ImageUrl) &&
+                menuItem.ImageUrl.StartsWith("/uploads/"))
+            {
+                var imagePath = Path.Combine(_env.WebRootPath, menuItem.ImageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(imagePath))
+                    System.IO.File.Delete(imagePath);
+            }
+
             _context.MenuItems.Remove(menuItem);
             await _context.SaveChangesAsync();
+
             TempData["Warning"] = "Menu item deleted.";
 
             return RedirectToAction("Manage", "Restaurants");
-        }
-
-        private bool MenuItemExists(int id)
-        {
-            return _context.MenuItems.Any(e => e.Id == id);
         }
     }
 }
