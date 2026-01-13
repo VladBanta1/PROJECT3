@@ -12,7 +12,7 @@ builder.Services.AddHttpClient<GeocodingService>();
 builder.Services.AddScoped<DistanceService>();
 
 
-// EF Core deja ai aici...
+// EF Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -26,7 +26,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// 🔹 Sesiune în memorie
+// Sesiune în memorie
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

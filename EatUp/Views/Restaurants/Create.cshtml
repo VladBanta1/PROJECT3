@@ -39,13 +39,12 @@
             </small>
         </div>
 
-        <!-- 🗺️ MAP LOCATION PICKER -->
+        <!-- MAP LOCATION PICKER -->
         <div class="mb-4">
             <label class="form-label">Restaurant location</label>
             <div id="map" style="height: 350px; border-radius: 12px;"></div>
         </div>
 
-        <!-- HIDDEN COORDINATES -->
         <input type="hidden" asp-for="Latitude" id="lat" />
         <input type="hidden" asp-for="Longitude" id="lng" />
 
@@ -98,7 +97,7 @@
             document.getElementById('lng').value = latlng.lng;
         }
 
-        // setăm coordonatele inițiale
+        // setam coordonatele initiale
         updateHiddenInputs(marker.getLatLng());
 
         marker.on('dragend', function () {

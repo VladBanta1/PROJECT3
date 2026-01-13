@@ -3,9 +3,9 @@
 @{
     ViewData["Title"] = "Restaurant details";
 
-    // poză restaurant
+    // poza restaurant
     var restaurantImage = string.IsNullOrWhiteSpace(Model.ImageUrl)
-        ? "/images/restaurants/default-restaurant.jpg"   // placeholder pt restaurante
+        ? "/images/restaurants/default-restaurant.jpg"   
         : Model.ImageUrl;
 }
 
@@ -35,7 +35,7 @@
         @foreach (var item in Model.MenuItems.Where(m => m.IsApproved))
 
         {
-            // poză produs (ATENȚIE: alt placeholder decât la restaurant)
+            // poza produs 
             var itemImage = string.IsNullOrWhiteSpace(item.ImageUrl)
             ? "/images/menu/default-food.jpg"
             : item.ImageUrl;

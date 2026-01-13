@@ -18,14 +18,14 @@
         <input type="hidden" asp-for="Id" />
         <input type="hidden" asp-for="ExistingImageUrl" />
 
-        <!-- NAME -->
+
         <div class="mb-3">
             <label asp-for="Name" class="form-label"></label>
             <input asp-for="Name" class="form-control" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
 
-        <!-- CURRENT IMAGE -->
+
         <div class="mb-3">
             <label class="form-label">Current image</label><br />
             <img src="@Model.ExistingImageUrl"
@@ -34,7 +34,7 @@
                  style="max-width: 220px; height: auto;" />
         </div>
 
-        <!-- NEW IMAGE -->
+
         <div class="mb-3">
             <label asp-for="ImageFile" class="form-label">Change image (optional)</label>
             <input asp-for="ImageFile"
@@ -44,7 +44,7 @@
             <span asp-validation-for="ImageFile" class="text-danger"></span>
         </div>
 
-        <!-- ADDRESS -->
+
         <div class="mb-3">
             <label asp-for="Address" class="form-label"></label>
             <input asp-for="Address" class="form-control" />
@@ -55,13 +55,13 @@
             </small>
         </div>
 
-        <!-- MAP -->
+
         <div class="mb-4">
             <label class="form-label">Restaurant location</label>
             <div id="map" style="height: 350px; border-radius: 12px;"></div>
         </div>
 
-        <!-- HIDDEN COORDS -->
+
         <input type="hidden" asp-for="Latitude" id="lat" />
         <input type="hidden" asp-for="Longitude" id="lng" />
 
@@ -106,7 +106,7 @@
             document.getElementById('lng').value = latlng.lng;
         }
 
-        // setăm coordonatele inițiale
+        // setam coordonatele inițiale
         updateHiddenInputs(marker.getLatLng());
 
         marker.on('dragend', function () {

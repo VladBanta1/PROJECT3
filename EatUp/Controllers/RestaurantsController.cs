@@ -35,9 +35,7 @@ namespace EatUp.Controllers
             _userManager = userManager;
         }
 
-        // =======================
         // PUBLIC (CLIENT)
-        // =======================
 
         public async Task<IActionResult> Index()
         {
@@ -76,9 +74,7 @@ namespace EatUp.Controllers
             return View(restaurant);
         }
 
-        // =======================
         // RESTAURANT ROLE
-        // =======================
 
         [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
@@ -292,10 +288,7 @@ namespace EatUp.Controllers
             return View(orders);
         }
 
-
-        // =======================
         // ADMIN ROLE
-        // =======================
 
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Pending()
@@ -319,9 +312,8 @@ namespace EatUp.Controllers
             TempData["Success"] = "Restaurant approved successfully.";
             return RedirectToAction(nameof(Pending));
         }
-        // =======================
+
         // ADMIN – DELETE RESTAURANT
-        // =======================
 
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)

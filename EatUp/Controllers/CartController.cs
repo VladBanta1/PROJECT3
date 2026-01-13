@@ -34,9 +34,7 @@ namespace EatUp.Controllers
             public double Longitude { get; set; }
         }
 
-        // =======================
         // CART (PUBLIC)
-        // =======================
 
         // GET: /Cart
         public IActionResult Index()
@@ -45,7 +43,7 @@ namespace EatUp.Controllers
             return View(cart);
         }
 
-        // GET: /Cart/Add?menuItemId=5
+        // GET: /Cart/Add
         public async Task<IActionResult> Add(int menuItemId)
         {
             var menuItem = await _context.MenuItems
@@ -95,9 +93,7 @@ namespace EatUp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // =======================
         // CHECKOUT
-        // =======================
 
         // GET: /Cart/Checkout
         [HttpGet]
@@ -176,15 +172,9 @@ namespace EatUp.Controllers
         }
 
 
-
-
-
-
-        // =======================
         // CONFIRMATION
-        // =======================
 
-        // GET: /Cart/Confirmation/5
+        // GET: /Cart/Confirmation
         public async Task<IActionResult> Confirmation(int id)
         {
             var order = await _context.Orders
@@ -198,9 +188,7 @@ namespace EatUp.Controllers
             return View(order);
         }
 
-        // =======================
         // REMOVE ITEM
-        // =======================
 
         // GET: /Cart/Remove?menuItemId=5
         public IActionResult Remove(int menuItemId)
@@ -223,7 +211,7 @@ namespace EatUp.Controllers
         {
             var user = _context.Users.First(u => u.UserName == User.Identity.Name);
 
-            var restaurant = GetRestaurantFromCart(); // metoda ta existentă
+            var restaurant = GetRestaurantFromCart(); 
             if (restaurant == null) return BadRequest();
 
             double distanceKm = GeoHelper.DistanceKm(
@@ -236,7 +224,7 @@ namespace EatUp.Controllers
             HttpContext.Session.SetInt32("DeliveryFee", (int)deliveryFee);
 
 
-            decimal subtotal = GetCartSubtotal(); // deja o ai
+            decimal subtotal = GetCartSubtotal(); 
             decimal total = subtotal + deliveryFee;
 
             return Json(new
@@ -288,9 +276,7 @@ namespace EatUp.Controllers
         }
 
 
-        // =======================
         // SESSION HELPERS
-        // =======================
         private Restaurant? GetRestaurantFromCart()
         {
             var cart = HttpContext.Session.GetObject<List<CartItem>>("Cart");
@@ -298,10 +284,10 @@ namespace EatUp.Controllers
             if (cart == null || !cart.Any())
                 return null;
 
-            // luăm primul produs din coș
+      
             int menuItemId = cart.First().MenuItemId;
 
-            // găsim restaurantul prin MenuItem
+            // gasim restaurantul prin MenuItem
             return _context.MenuItems
                 .Include(m => m.Restaurant)
                 .Where(m => m.Id == menuItemId)

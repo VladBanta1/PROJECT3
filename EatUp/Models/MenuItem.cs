@@ -6,7 +6,7 @@
 
         public int RestaurantId { get; set; }
 
-        // navigațională, o facem nullable ca să nu fie required în model binding
+ 
         public Restaurant? Restaurant { get; set; }
 
         public string Name { get; set; } = string.Empty;

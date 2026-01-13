@@ -25,9 +25,7 @@ namespace EatUp.Controllers
             _env = env;
         }
 
-        // =======================
         // PUBLIC (CLIENT)
-        // =======================
 
         public async Task<IActionResult> Index()
         {
@@ -54,9 +52,7 @@ namespace EatUp.Controllers
         }
 
 
-        // =======================
         // RESTAURANT ROLE
-        // =======================
 
         [Authorize(Roles = "Restaurant")]
         public IActionResult Create()
@@ -188,7 +184,7 @@ namespace EatUp.Controllers
                 using var stream = new FileStream(filePath, FileMode.Create);
                 await model.ImageFile.CopyToAsync(stream);
 
-                // șterge poza veche
+                // sterge poza veche
                 if (!string.IsNullOrEmpty(menuItem.ImageUrl) &&
                     menuItem.ImageUrl.StartsWith("/uploads/"))
                 {
@@ -220,9 +216,7 @@ namespace EatUp.Controllers
             return RedirectToAction("Manage", "Restaurants");
         }
 
-        // =======================
         // DELETE (ADMIN / RESTAURANT)
-        // =======================
 
         [Authorize(Roles = "Restaurant,Admin")]
         public async Task<IActionResult> Delete(int? id)
@@ -257,7 +251,7 @@ namespace EatUp.Controllers
                 menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
-            // 🔥 ștergere poză
+            // stergere poza
             if (!string.IsNullOrEmpty(menuItem.ImageUrl) &&
                 menuItem.ImageUrl.StartsWith("/uploads/"))
             {
