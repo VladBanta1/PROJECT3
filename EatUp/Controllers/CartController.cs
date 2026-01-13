@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using EatUp.Helpers;
+using EatUp.Models.ViewModels;
 
 namespace EatUp.Controllers
 {
@@ -19,6 +21,12 @@ namespace EatUp.Controllers
         {
             _context = context;
             _userManager = userManager;
+        }
+
+        public class LocationDto
+        {
+            public double Latitude { get; set; }
+            public double Longitude { get; set; }
         }
 
         // =======================
@@ -78,17 +86,24 @@ namespace EatUp.Controllers
         public IActionResult Checkout()
         {
             var cart = GetCart();
-            if (!cart.Any())
-                return RedirectToAction(nameof(Index));
+            if (cart == null || !cart.Any())
+                return RedirectToAction("Index");
 
-            // dacă nu e logat → mesaj frumos
-            if (!User.Identity.IsAuthenticated)
+            var restaurant = GetRestaurantFromCart();
+            if (restaurant == null)
+                return RedirectToAction("Index");
+
+            var model = new CheckoutViewModel
             {
-                return View("LoginRequired");
-            }
+                CartItems = cart,
+                Subtotal = cart.Sum(x => x.TotalPrice),
+                RestaurantLat = restaurant.Latitude,
+                RestaurantLng = restaurant.Longitude
+            };
 
-            return View(cart);
+            return View(model);
         }
+
 
         // POST: /Cart/Checkout
         [HttpPost]
@@ -177,9 +192,66 @@ namespace EatUp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CalculateDelivery([FromBody] LocationDto dto)
+        {
+            var user = _context.Users.First(u => u.UserName == User.Identity.Name);
+
+            var restaurant = GetRestaurantFromCart(); // metoda ta existentă
+            if (restaurant == null) return BadRequest();
+
+            double distanceKm = GeoHelper.DistanceKm(
+                dto.Latitude, dto.Longitude,
+                restaurant.Latitude, restaurant.Longitude
+            );
+
+            decimal deliveryFee = (decimal)(5 + distanceKm * 2);
+            deliveryFee = Math.Min(deliveryFee, 25);
+
+            decimal subtotal = GetCartSubtotal(); // deja o ai
+            decimal total = subtotal + deliveryFee;
+
+            return Json(new
+            {
+                distanceKm,
+                deliveryFee,
+                total
+            });
+        }
+
+        private decimal GetCartSubtotal()
+        {
+            var cart = HttpContext.Session.GetObjectFromJson<List<CartItem>>("Cart");
+
+            if (cart == null || !cart.Any())
+                return 0;
+
+            return cart.Sum(i => i.UnitPrice * i.Quantity);
+        }
+
+
         // =======================
         // SESSION HELPERS
         // =======================
+        private Restaurant? GetRestaurantFromCart()
+        {
+            var cart = HttpContext.Session.GetObject<List<CartItem>>("Cart");
+
+            if (cart == null || !cart.Any())
+                return null;
+
+            // luăm primul produs din coș
+            int menuItemId = cart.First().MenuItemId;
+
+            // găsim restaurantul prin MenuItem
+            return _context.MenuItems
+                .Include(m => m.Restaurant)
+                .Where(m => m.Id == menuItemId)
+                .Select(m => m.Restaurant)
+                .FirstOrDefault();
+        }
+
 
         private List<CartItem> GetCart()
         {

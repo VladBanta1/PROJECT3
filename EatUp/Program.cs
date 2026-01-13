@@ -1,5 +1,6 @@
 ﻿using EatUp.Data;
 using EatUp.Models;
+using EatUp.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient<GeocodingService>();
+builder.Services.AddScoped<DistanceService>();
+
 
 // EF Core deja ai aici...
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

@@ -72,12 +72,12 @@
 
     @if (User.Identity.IsAuthenticated)
     {
-        <form asp-action="CheckoutConfirm" method="post">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-success">
-                Place order
-            </button>
-        </form>
+        <a asp-controller="Cart"
+           asp-action="Checkout"
+           class="btn btn-success">
+            Checkout
+        </a>
+
     }
     else
     {

@@ -1,6 +1,8 @@
 ﻿using EatUp.Data;
 using EatUp.Models;
 using EatUp.Models.ViewModels;
+using EatUp.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,15 +13,18 @@ namespace EatUp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ApplicationDbContext _context;
+        private readonly GeocodingService _geocodingService;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            GeocodingService geocodingService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _context = context;
+            _geocodingService = geocodingService;
         }
 
         // =======================
@@ -31,25 +36,40 @@ namespace EatUp.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                TempData["Error"] = "Invalid email or password.";
+                return View();
+            }
+
             var result = await _signInManager.PasswordSignInAsync(
-                email, password, false, false);
+                user, password, false, false);
 
             if (result.Succeeded)
             {
+                // 🔥 FALLBACK GEOLOCATION – dacă browserul nu a trimis locația
+                if (user.Latitude == 0 && user.Longitude == 0 && !string.IsNullOrEmpty(user.Address))
+                {
+                    var coords = await _geocodingService.GetCoordinatesAsync(user.Address);
+
+                    if (coords != null)
+                    {
+                        user.Latitude = coords.Value.lat;
+                        user.Longitude = coords.Value.lon;
+                        await _userManager.UpdateAsync(user);
+                    }
+                }
+
                 TempData["Success"] = "You have logged in successfully.";
                 return RedirectToAction("Index", "Home");
-                
             }
-            else
-            {
 
-
-                ModelState.AddModelError("", "Invalid login");
-                TempData["Error"] = "Invalid email or password.";
-
-                return View();
-            }
+            TempData["Error"] = "Invalid email or password.";
+            return View();
         }
+
 
         // =======================
         // REGISTER
@@ -128,5 +148,21 @@ namespace EatUp.Controllers
             
 
         }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> SaveLocation(double latitude, double longitude)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            user.Latitude = latitude;
+            user.Longitude = longitude;
+
+            await _userManager.UpdateAsync(user);
+
+            return Ok();
+        }
+
     }
 }

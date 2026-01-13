@@ -1,0 +1,123 @@
+﻿@model EatUp.Models.ViewModels.CheckoutViewModel
+
+
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<h2 class="mb-4">Checkout</h2>
+
+@if (!User.Identity.IsAuthenticated)
+{
+    <div class="alert alert-warning">
+        You must be logged in to place an order.
+        <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-primary ms-2">
+            Login
+        </a>
+    </div>
+    return;
+}
+
+<!-- CART SUMMARY -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Your order</h5>
+
+        @foreach (var item in Model.CartItems)
+        {
+            <div class="d-flex justify-content-between">
+                <span>@item.MenuItemName x @item.Quantity</span>
+                <span>@item.TotalPrice.ToString("0.00") lei</span>
+            </div>
+        }
+
+
+        <hr />
+
+        <div class="d-flex justify-content-between">
+            <strong>Subtotal</strong>
+            <<strong>@Model.Subtotal.ToString("0.00") lei</strong>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <strong>Delivery</strong>
+            <strong><span id="deliveryFee">-</span> lei</strong>
+        </div>
+
+        <div class="d-flex justify-content-between mt-2">
+            <strong>Total</strong>
+            <strong><span id="totalPrice">-</span> lei</strong>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3">Choose delivery location</h4>
+
+<div id="map" style="height: 400px; border-radius: 12px;"></div>
+
+<input type="hidden" id="lat" />
+<input type="hidden" id="lng" />
+
+<div class="mt-3">
+    <p><strong>Distance:</strong> <span id="distance">-</span> km</p>
+</div>
+
+
+<form asp-action="CheckoutConfirm" method="post">
+    @Html.AntiForgeryToken()
+
+    <button type="submit" class="btn btn-success">
+        Place order
+    </button>
+    <input type="hidden" name="Latitude" id="orderLat" />
+    <input type="hidden" name="Longitude" id="orderLng" />
+</form>
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    const restaurantLat = @Model.RestaurantLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    const restaurantLng = @Model.RestaurantLng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    const subtotal = @Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) ** 2;
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    const map = L.map('map').setView([restaurantLat, restaurantLng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const marker = L.marker([restaurantLat, restaurantLng], { draggable: true }).addTo(map);
+
+    function updateDelivery(lat, lng) {
+        const distance = haversine(restaurantLat, restaurantLng, lat, lng);
+        let delivery = 5 + distance * 2;
+        delivery = Math.min(delivery, 25);
+
+        document.getElementById("distance").innerText = distance.toFixed(2);
+        document.getElementById("deliveryFee").innerText = delivery.toFixed(2);
+        document.getElementById("totalPrice").innerText =
+            (parseFloat(subtotal) + delivery).toFixed(2);
+    }
+
+    marker.on('dragend', () => {
+        const pos = marker.getLatLng();
+        updateDelivery(pos.lat, pos.lng);
+    });
+
+    map.on('click', e => {
+        marker.setLatLng(e.latlng);
+        updateDelivery(e.latlng.lat, e.latlng.lng);
+    });
+</script>

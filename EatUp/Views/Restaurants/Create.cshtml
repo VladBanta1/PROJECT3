@@ -31,10 +31,23 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Address</label>
+            <label class="form-label">Address (for display)</label>
             <input asp-for="Address" class="form-control" />
             <span asp-validation-for="Address" class="text-danger"></span>
+            <small class="text-muted">
+                This address is shown to customers. Location is chosen on the map below.
+            </small>
         </div>
+
+        <!-- 🗺️ MAP LOCATION PICKER -->
+        <div class="mb-4">
+            <label class="form-label">Restaurant location</label>
+            <div id="map" style="height: 350px; border-radius: 12px;"></div>
+        </div>
+
+        <!-- HIDDEN COORDINATES -->
+        <input type="hidden" asp-for="Latitude" id="lat" />
+        <input type="hidden" asp-for="Longitude" id="lng" />
 
         <div class="mb-3">
             <label class="form-label">Delivery time (minutes)</label>
@@ -43,24 +56,59 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Delivery fee (lei)</label>
+            <label class="form-label">Base delivery fee (lei)</label>
             <input asp-for="DeliveryFee" class="form-control" />
             <span asp-validation-for="DeliveryFee" class="text-danger"></span>
         </div>
 
         <div class="alert alert-info alert-elegant mb-4">
-            Complete your restaurant details. You will be able to add menu items
-            and submit your restaurant for approval afterwards.
+            Choose your restaurant location on the map.
+            Customers’ delivery distance will be calculated from this point.
         </div>
 
         <button type="submit"
                 class="btn btn-primary w-100">
             Save restaurant details
         </button>
+        <input type="hidden" asp-for="Latitude" id="lat" />
+        <input type="hidden" asp-for="Longitude" id="lng" />
+
 
     </form>
 </div>
 
+<!-- LEAFLET -->
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        var map = L.map('map').setView([44.4268, 26.1025], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+            .addTo(map);
+
+        var marker = L.marker(map.getCenter(), { draggable: true }).addTo(map);
+
+        function updateHiddenInputs(latlng) {
+            document.getElementById('lat').value = latlng.lat;
+            document.getElementById('lng').value = latlng.lng;
+        }
+
+        // setăm coordonatele inițiale
+        updateHiddenInputs(marker.getLatLng());
+
+        marker.on('dragend', function () {
+            updateHiddenInputs(marker.getLatLng());
+        });
+
+        map.on('click', function (e) {
+            marker.setLatLng(e.latlng);
+            updateHiddenInputs(e.latlng);
+        });
+    </script>
+
 }

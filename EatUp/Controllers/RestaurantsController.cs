@@ -10,6 +10,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using EatUp.Services;
+using Microsoft.AspNetCore.Identity;
 
 namespace EatUp.Controllers
 {
@@ -17,11 +19,20 @@ namespace EatUp.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly GeocodingService _geocodingService;
+        private readonly DistanceService _distanceService;
+        private readonly UserManager<ApplicationUser> _userManager;
+       
 
-        public RestaurantsController(ApplicationDbContext context, IWebHostEnvironment env)
+
+
+        public RestaurantsController(ApplicationDbContext context, IWebHostEnvironment env, GeocodingService geocodingService, DistanceService distanceService, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _env = env;
+            _geocodingService = geocodingService;
+            _distanceService = distanceService;
+            _userManager = userManager;
         }
 
         // =======================
@@ -34,8 +45,50 @@ namespace EatUp.Controllers
                 .Where(r => r.IsApproved)
                 .ToListAsync();
 
-            return View(restaurants);
+            ApplicationUser? user = null;
+
+            if (User.Identity.IsAuthenticated)
+            {
+                user = await _userManager.GetUserAsync(User);
+            }
+
+            var result = restaurants.Select(r =>
+            {
+                double distanceKm = 0;
+                decimal deliveryFee = r.DeliveryFee;
+
+                if (user != null && user.Latitude != 0 && user.Longitude != 0)
+                {
+                    distanceKm = _distanceService.CalculateDistanceKm(
+                        user.Latitude,
+                        user.Longitude,
+                        r.Latitude,
+                        r.Longitude
+                    );
+
+                    // 🔥 AICI este codul de la punctul 4.3
+                    deliveryFee = 5m + (decimal)distanceKm * 2m;
+                    deliveryFee = Math.Min(deliveryFee, 25m);
+
+                }
+
+                return new EatUp.Models.ViewModels.RestaurantDistanceViewModel
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    ImageUrl = r.ImageUrl,
+                    DeliveryTimeMinutes = r.DeliveryTimeMinutes,
+                    DistanceKm = Math.Round(distanceKm, 1),
+                    DeliveryFee = Math.Round(deliveryFee, 2)
+                };
+            })
+            .OrderBy(r => r.DistanceKm)
+            .ToList();
+
+            return View(result);
         }
+
+
 
         public async Task<IActionResult> Details(int? id)
         {
@@ -84,17 +137,31 @@ namespace EatUp.Controllers
                 imagePath = "/uploads/restaurants/" + fileName;
             }
 
+            var coords = await _geocodingService.GetCoordinatesAsync(model.Address);
+
+            if (coords == null)
+            {
+                ModelState.AddModelError("Address", "Address could not be located on the map.");
+                return View(model);
+            }
+
             var restaurant = new Restaurant
             {
                 Name = model.Name,
                 Address = model.Address,
                 DeliveryTimeMinutes = model.DeliveryTimeMinutes,
                 DeliveryFee = model.DeliveryFee,
+
+                Latitude = coords.Value.lat,
+                Longitude = coords.Value.lon,
+
+
                 ImageUrl = imagePath,
                 OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier),
                 IsApproved = false,
                 IsSubmitted = false
             };
+
 
             _context.Restaurants.Add(restaurant);
             await _context.SaveChangesAsync();
@@ -150,7 +217,22 @@ namespace EatUp.Controllers
         public async Task<IActionResult> Edit(RestaurantFormViewModel model)
         {
             if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value.Errors.Any())
+                    .Select(x => $"{x.Key}: {string.Join(", ", x.Value.Errors.Select(e => e.ErrorMessage))}");
+
+                TempData["Error"] = string.Join(" | ", errors);
                 return View(model);
+            }
+
+
+            var coords = await _geocodingService.GetCoordinatesAsync(model.Address);
+            if (coords == null)
+            {
+                ModelState.AddModelError("Address", "Address could not be located.");
+                return View(model);
+            }
 
             var restaurant = await _context.Restaurants.FindAsync(model.Id);
             if (restaurant == null) return NotFound();
@@ -176,6 +258,9 @@ namespace EatUp.Controllers
             restaurant.Address = model.Address;
             restaurant.DeliveryTimeMinutes = model.DeliveryTimeMinutes;
             restaurant.DeliveryFee = model.DeliveryFee;
+            restaurant.Latitude = coords.Value.lat;
+            restaurant.Longitude = coords.Value.lon;
+
             restaurant.IsApproved = false;
 
             await _context.SaveChangesAsync();
