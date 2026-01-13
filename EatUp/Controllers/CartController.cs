@@ -57,6 +57,19 @@ namespace EatUp.Controllers
 
             var cart = GetCart();
 
+            if (cart.Any())
+            {
+                var existingRestaurant = cart.First().RestaurantName;
+
+                if (menuItem.Restaurant?.Name != existingRestaurant)
+                {
+                    TempData["CartError"] =
+                        "You can only order from one restaurant at a time. Please clear your cart first.";
+
+                    return RedirectToAction("Index", "Cart");
+                }
+            }
+
             var existingItem = cart.FirstOrDefault(c => c.MenuItemId == menuItemId);
             if (existingItem != null)
             {
@@ -129,7 +142,7 @@ namespace EatUp.Controllers
             var order = new Order
             {
                 CustomerName = user.FullName,
-                CustomerAddress = user.Address,
+                CustomerAddress = model.DeliveryAddress,
                 CustomerPhone = user.PhoneNumber,
 
                 Subtotal = model.Subtotal,

@@ -16,6 +16,14 @@
     return;
 }
 
+@if (TempData["CartError"] != null)
+{
+    <div class="alert alert-warning">
+        @TempData["CartError"]
+    </div>
+}
+
+
 <table class="table">
     <thead>
         <tr>

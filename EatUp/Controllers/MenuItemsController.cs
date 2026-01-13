@@ -43,15 +43,16 @@ namespace EatUp.Controllers
         {
             if (id == null) return NotFound();
 
-            var menuItem = await _context.MenuItems
-                .Include(m => m.Restaurant)
-                .FirstOrDefaultAsync(m =>
-                    m.Id == id && m.Restaurant.IsApproved);
+            var restaurant = await _context.Restaurants
+                .Include(r => r.MenuItems.Where(m => m.IsApproved)) //  doar item-uri aprobate
+                .FirstOrDefaultAsync(r => r.Id == id && r.IsApproved);
 
-            if (menuItem == null) return NotFound();
+            if (restaurant == null)
+                return NotFound();
 
-            return View(menuItem);
+            return View(restaurant);
         }
+
 
         // =======================
         // RESTAURANT ROLE
@@ -118,7 +119,8 @@ namespace EatUp.Controllers
                 Description = model.Description,
                 Price = model.Price,
                 RestaurantId = model.RestaurantId,
-                ImageUrl = imagePath
+                ImageUrl = imagePath,
+                IsApproved = false
             };
 
             _context.MenuItems.Add(menuItem);
@@ -173,6 +175,8 @@ namespace EatUp.Controllers
             if (menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
+            var oldPrice = menuItem.Price;
+
             if (model.ImageFile != null)
             {
                 string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads/menu-items");
@@ -198,11 +202,20 @@ namespace EatUp.Controllers
 
             menuItem.Name = model.Name;
             menuItem.Description = model.Description;
+
+            if (oldPrice != model.Price)
+            {
+                menuItem.IsApproved = false;
+            }
+
             menuItem.Price = model.Price;
 
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Menu item updated successfully.";
+            TempData["Success"] =
+        oldPrice != model.Price
+        ? "Price changed. Menu item sent for admin approval."
+        : "Menu item updated successfully.";
 
             return RedirectToAction("Manage", "Restaurants");
         }
@@ -229,7 +242,7 @@ namespace EatUp.Controllers
             return View(menuItem);
         }
 
-        [HttpPost]
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Restaurant,Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -244,10 +257,15 @@ namespace EatUp.Controllers
                 menuItem.Restaurant.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier))
                 return Forbid();
 
+            // 🔥 ștergere poză
             if (!string.IsNullOrEmpty(menuItem.ImageUrl) &&
                 menuItem.ImageUrl.StartsWith("/uploads/"))
             {
-                var imagePath = Path.Combine(_env.WebRootPath, menuItem.ImageUrl.TrimStart('/'));
+                var imagePath = Path.Combine(
+                    _env.WebRootPath,
+                    menuItem.ImageUrl.TrimStart('/')
+                );
+
                 if (System.IO.File.Exists(imagePath))
                     System.IO.File.Delete(imagePath);
             }
@@ -259,5 +277,7 @@ namespace EatUp.Controllers
 
             return RedirectToAction("Manage", "Restaurants");
         }
+
+
     }
 }

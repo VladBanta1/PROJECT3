@@ -20,12 +20,12 @@
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">EatUp</a>
 
                 <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#navbarMain"
-                        aria-controls="navbarMain"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation">
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarMain"
+                aria-controls="navbarMain"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -47,12 +47,23 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-danger"
-                                   asp-controller="Restaurants"
-                                   asp-action="Pending">
+                                asp-controller="Restaurants"
+                                asp-action="Pending">
                                     Pending Restaurants
                                 </a>
                             </li>
                         }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-danger"
+                                asp-controller="AdminMenuItems"
+                                asp-action="Pending">
+                                    Pending Menu Items
+                                </a>
+                            </li>
+                        }
+
                     </ul>
 
                     <!-- RIGHT -->

@@ -1,0 +1,80 @@
+﻿@model IEnumerable<EatUp.Models.Order>
+
+@{
+    ViewData["Title"] = "Orders";
+}
+
+<h2 class="mb-4">Orders from customers</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No orders yet.
+    </div>
+}
+else
+{
+    @foreach (var order in Model)
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <strong>Order #@order.Id</strong>
+                    <span class="text-muted">
+                        @order.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                    </span>
+                </div>
+
+                <p class="mb-1">
+                    <strong>Customer:</strong> @order.CustomerName
+                </p>
+
+                <p class="mb-1">
+                    <strong>Phone:</strong> @order.CustomerPhone
+                </p>
+
+                <p class="mb-3">
+                    <strong>Delivery address:</strong> @order.CustomerAddress
+                </p>
+
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in order.OrderItems)
+                        {
+                            <tr>
+                                <td>@item.MenuItem.Name</td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">
+                                    @((item.UnitPrice * item.Quantity).ToString("0.00")) lei
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="text-end">
+                    <div>
+                        <strong>Delivery:</strong>
+                        @order.DeliveryFee.ToString("0.00") lei
+                    </div>
+
+                    <div class="mt-1">
+                        <strong>Total:</strong>
+                        @order.TotalPrice.ToString("0.00") lei
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    }
+}

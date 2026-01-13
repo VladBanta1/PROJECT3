@@ -269,6 +269,30 @@ namespace EatUp.Controllers
             return RedirectToAction(nameof(Manage));
         }
 
+        [Authorize(Roles = "Restaurant")]
+        public async Task<IActionResult> Orders()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var restaurant = await _context.Restaurants
+                .FirstOrDefaultAsync(r => r.OwnerId == userId);
+
+            if (restaurant == null)
+                return NotFound();
+
+            var orders = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.MenuItem)
+                .Where(o =>
+                    o.OrderItems.Any(oi => oi.MenuItem.RestaurantId == restaurant.Id)
+                )
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+
+            return View(orders);
+        }
+
+
         // =======================
         // ADMIN ROLE
         // =======================
