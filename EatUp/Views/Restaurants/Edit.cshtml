@@ -11,11 +11,14 @@
     <div asp-validation-summary="ModelOnly"
          class="alert alert-danger alert-elegant"></div>
 
-    <form asp-action="Edit" enctype="multipart/form-data">
+    <form asp-action="Edit"
+          method="post"
+          enctype="multipart/form-data">
 
         <input type="hidden" asp-for="Id" />
         <input type="hidden" asp-for="ExistingImageUrl" />
 
+        <!-- NAME -->
         <div class="mb-3">
             <label asp-for="Name" class="form-label"></label>
             <input asp-for="Name" class="form-control" />
@@ -24,16 +27,16 @@
 
         <!-- CURRENT IMAGE -->
         <div class="mb-3">
-            <label class="form-label">Current Image</label><br />
+            <label class="form-label">Current image</label><br />
             <img src="@Model.ExistingImageUrl"
                  alt="Restaurant image"
-                 class="rounded shadow-sm"
+                 class="rounded shadow-sm mb-2"
                  style="max-width: 220px; height: auto;" />
         </div>
 
-        <!-- NEW IMAGE UPLOAD -->
+        <!-- NEW IMAGE -->
         <div class="mb-3">
-            <label asp-for="ImageFile" class="form-label">Change Image</label>
+            <label asp-for="ImageFile" class="form-label">Change image (optional)</label>
             <input asp-for="ImageFile"
                    type="file"
                    class="form-control"
@@ -41,23 +44,28 @@
             <span asp-validation-for="ImageFile" class="text-danger"></span>
         </div>
 
+        <!-- ADDRESS -->
         <div class="mb-3">
             <label asp-for="Address" class="form-label"></label>
             <input asp-for="Address" class="form-control" />
             <span asp-validation-for="Address" class="text-danger"></span>
+            <small class="text-muted">
+                This address is shown to customers.
+                Location is selected on the map below.
+            </small>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="DeliveryTimeMinutes" class="form-label"></label>
-            <input asp-for="DeliveryTimeMinutes" class="form-control" />
-            <span asp-validation-for="DeliveryTimeMinutes" class="text-danger"></span>
-        </div>
-
+        <!-- MAP -->
         <div class="mb-4">
-            <label asp-for="DeliveryFee" class="form-label"></label>
-            <input asp-for="DeliveryFee" class="form-control" />
-            <span asp-validation-for="DeliveryFee" class="text-danger"></span>
+            <label class="form-label">Restaurant location</label>
+            <div id="map" style="height: 350px; border-radius: 12px;"></div>
         </div>
+
+        <!-- HIDDEN COORDS -->
+        <input type="hidden" asp-for="Latitude" id="lat" />
+        <input type="hidden" asp-for="Longitude" id="lng" />
+
+        
 
         <div class="d-flex justify-content-between">
             <a asp-controller="Restaurants"
@@ -70,13 +78,45 @@
                 Save changes
             </button>
         </div>
+        <input type="hidden" asp-for="Latitude" id="lat" />
+        <input type="hidden" asp-for="Longitude" id="lng" />
 
     </form>
 
 </div>
 
+<!-- LEAFLET -->
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        var map = L.map('map').setView([44.4268, 26.1025], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+            .addTo(map);
+
+        var marker = L.marker(map.getCenter(), { draggable: true }).addTo(map);
+
+        function updateHiddenInputs(latlng) {
+            document.getElementById('lat').value = latlng.lat;
+            document.getElementById('lng').value = latlng.lng;
+        }
+
+        // setăm coordonatele inițiale
+        updateHiddenInputs(marker.getLatLng());
+
+        marker.on('dragend', function () {
+            updateHiddenInputs(marker.getLatLng());
+        });
+
+        map.on('click', function (e) {
+            marker.setLatLng(e.latlng);
+            updateHiddenInputs(e.latlng);
+        });
+    </script>
+
 }

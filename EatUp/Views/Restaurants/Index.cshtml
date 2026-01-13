@@ -1,4 +1,6 @@
-﻿@model IEnumerable<EatUp.Models.Restaurant>
+﻿@model IEnumerable<EatUp.Models.ViewModels.RestaurantCardViewModel>
+
+
 
 @{
     ViewData["Title"] = "Restaurants";
@@ -32,10 +34,8 @@
 
                     <h5 class="mb-1">@item.Name</h5>
 
-                    <p class="text-muted mb-3">
-                        @item.DeliveryTimeMinutes min •
-                        @item.DeliveryFee.ToString("0.00") lei delivery
-                    </p>
+                    
+
 
                     
 

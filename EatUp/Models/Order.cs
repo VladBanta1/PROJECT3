@@ -10,7 +10,8 @@
         public string? UserId { get; set; }
         public ApplicationUser? User { get; set; }
 
-
+        public decimal Subtotal { get; set; }       
+        public decimal DeliveryFee { get; set; }
         public decimal TotalPrice { get; set; }
         public DateTime CreatedAt { get; set; }
 

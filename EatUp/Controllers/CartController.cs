@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using EatUp.Helpers;
+using EatUp.Models.ViewModels;
+using EatUp.Services;
 
 namespace EatUp.Controllers
 {
@@ -13,12 +16,22 @@ namespace EatUp.Controllers
         private readonly ApplicationDbContext _context;
         private const string CartSessionKey = "Cart";
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly DistanceService _distanceService;
+
 
         public CartController(ApplicationDbContext context,
-                              UserManager<ApplicationUser> userManager)
+                              UserManager<ApplicationUser> userManager,
+                              DistanceService distanceService)
         {
             _context = context;
             _userManager = userManager;
+            _distanceService = distanceService;
+        }
+
+        public class LocationDto
+        {
+            public double Latitude { get; set; }
+            public double Longitude { get; set; }
         }
 
         // =======================
@@ -78,31 +91,36 @@ namespace EatUp.Controllers
         public IActionResult Checkout()
         {
             var cart = GetCart();
-            if (!cart.Any())
-                return RedirectToAction(nameof(Index));
+            if (cart == null || !cart.Any())
+                return RedirectToAction("Index");
 
-            // dacă nu e logat → mesaj frumos
-            if (!User.Identity.IsAuthenticated)
+            var restaurant = GetRestaurantFromCart();
+            if (restaurant == null)
+                return RedirectToAction("Index");
+
+            var model = new CheckoutViewModel
             {
-                return View("LoginRequired");
-            }
+                CartItems = cart,
+                Subtotal = cart.Sum(x => x.TotalPrice),
+                RestaurantLat = restaurant.Latitude,
+                RestaurantLng = restaurant.Longitude
+            };
 
-            return View(cart);
+            return View(model);
         }
+
 
         // POST: /Cart/Checkout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize] // ⬅️ OBLIGATORIU LOGAT
-        public async Task<IActionResult> CheckoutConfirm()
+        [Authorize]
+        public async Task<IActionResult> CheckoutConfirm(CheckoutConfirmViewModel model)
         {
+            Console.WriteLine("DEBUG Subtotal RECEIVED: " + model.Subtotal);
+            Console.WriteLine("DEBUG DeliveryFee RECEIVED: " + model.DeliveryFee);
             var cart = GetCart();
-
             if (cart == null || !cart.Any())
-            {
-                TempData["CartError"] = "Your cart is empty.";
                 return RedirectToAction("Index");
-            }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -113,7 +131,11 @@ namespace EatUp.Controllers
                 CustomerName = user.FullName,
                 CustomerAddress = user.Address,
                 CustomerPhone = user.PhoneNumber,
-                TotalPrice = cart.Sum(c => c.TotalPrice),
+
+                Subtotal = model.Subtotal,
+                DeliveryFee = model.DeliveryFee,
+                TotalPrice = model.Subtotal + model.DeliveryFee,
+
                 CreatedAt = DateTime.Now,
                 UserId = user.Id
             };
@@ -136,8 +158,13 @@ namespace EatUp.Controllers
 
             SaveCart(new List<CartItem>());
             TempData["Success"] = "Your order has been placed successfully.";
+
             return RedirectToAction("Confirmation", new { id = order.Id });
         }
+
+
+
+
 
 
         // =======================
@@ -177,9 +204,98 @@ namespace EatUp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CalculateDelivery([FromBody] LocationDto dto)
+        {
+            var user = _context.Users.First(u => u.UserName == User.Identity.Name);
+
+            var restaurant = GetRestaurantFromCart(); // metoda ta existentă
+            if (restaurant == null) return BadRequest();
+
+            double distanceKm = GeoHelper.DistanceKm(
+                dto.Latitude, dto.Longitude,
+                restaurant.Latitude, restaurant.Longitude
+            );
+
+            decimal deliveryFee = (decimal)(5 + distanceKm * 2);
+            deliveryFee = Math.Min(deliveryFee, 25);
+            HttpContext.Session.SetInt32("DeliveryFee", (int)deliveryFee);
+
+
+            decimal subtotal = GetCartSubtotal(); // deja o ai
+            decimal total = subtotal + deliveryFee;
+
+            return Json(new
+            {
+                distanceKm,
+                deliveryFee,
+                total
+            });
+        }
+
+        private decimal GetCartSubtotal()
+        {
+            var cart = HttpContext.Session.GetObjectFromJson<List<CartItem>>("Cart");
+
+            if (cart == null || !cart.Any())
+                return 0;
+
+            return cart.Sum(i => i.UnitPrice * i.Quantity);
+        }
+
+        [HttpPost]
+        public IActionResult Increase(int menuItemId)
+        {
+            var cart = GetCart();
+            var item = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+
+            if (item != null)
+                item.Quantity++;
+
+            SaveCart(cart);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public IActionResult Decrease(int menuItemId)
+        {
+            var cart = GetCart();
+            var item = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+
+            if (item != null)
+            {
+                item.Quantity--;
+                if (item.Quantity <= 0)
+                    cart.Remove(item);
+            }
+
+            SaveCart(cart);
+            return RedirectToAction(nameof(Index));
+        }
+
+
         // =======================
         // SESSION HELPERS
         // =======================
+        private Restaurant? GetRestaurantFromCart()
+        {
+            var cart = HttpContext.Session.GetObject<List<CartItem>>("Cart");
+
+            if (cart == null || !cart.Any())
+                return null;
+
+            // luăm primul produs din coș
+            int menuItemId = cart.First().MenuItemId;
+
+            // găsim restaurantul prin MenuItem
+            return _context.MenuItems
+                .Include(m => m.Restaurant)
+                .Where(m => m.Id == menuItemId)
+                .Select(m => m.Restaurant)
+                .FirstOrDefault();
+        }
+
 
         private List<CartItem> GetCart()
         {

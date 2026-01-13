@@ -16,6 +16,8 @@ namespace EatUp.Models.ViewModels
         public int DeliveryTimeMinutes { get; set; }
 
         public decimal DeliveryFee { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
 
         public string? ExistingImageUrl { get; set; }
 
