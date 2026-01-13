@@ -65,19 +65,7 @@
         <input type="hidden" asp-for="Latitude" id="lat" />
         <input type="hidden" asp-for="Longitude" id="lng" />
 
-        <!-- DELIVERY TIME -->
-        <div class="mb-3">
-            <label asp-for="DeliveryTimeMinutes" class="form-label"></label>
-            <input asp-for="DeliveryTimeMinutes" class="form-control" />
-            <span asp-validation-for="DeliveryTimeMinutes" class="text-danger"></span>
-        </div>
-
-        <!-- BASE DELIVERY FEE -->
-        <div class="mb-4">
-            <label asp-for="DeliveryFee" class="form-label"></label>
-            <input asp-for="DeliveryFee" class="form-control" />
-            <span asp-validation-for="DeliveryFee" class="text-danger"></span>
-        </div>
+        
 
         <div class="d-flex justify-content-between">
             <a asp-controller="Restaurants"

@@ -40,7 +40,22 @@
                 <td>@item.MenuItemName</td>
                 <td>@item.RestaurantName</td>
                 <td class="text-end">@item.UnitPrice.ToString("0.00") lei</td>
-                <td class="text-center">@item.Quantity</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <form asp-action="Decrease" method="post">
+                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
+                            <button class="btn btn-sm btn-outline-secondary">−</button>
+                        </form>
+
+                        <span>@item.Quantity</span>
+
+                        <form asp-action="Increase" method="post">
+                            <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
+                            <button class="btn btn-sm btn-outline-secondary">+</button>
+                        </form>
+                    </div>
+                </td>
+
                 <td class="text-end">@item.TotalPrice.ToString("0.00") lei</td>
                 <td class="text-end">
                     <a asp-action="Remove"
@@ -62,8 +77,6 @@
 
 <div class="text-end">
     <p><strong>Items total:</strong> @itemsTotal.ToString("0.00") lei</p>
-    <p><strong>Delivery fee:</strong> @deliveryFee.ToString("0.00") lei</p>
-    <h4>Total: @grandTotal.ToString("0.00") lei</h4>
 </div>
 
 <hr />

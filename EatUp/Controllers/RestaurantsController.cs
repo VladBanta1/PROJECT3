@@ -45,47 +45,20 @@ namespace EatUp.Controllers
                 .Where(r => r.IsApproved)
                 .ToListAsync();
 
-            ApplicationUser? user = null;
 
-            if (User.Identity.IsAuthenticated)
+
+            var result = restaurants.Select(r => new RestaurantCardViewModel
             {
-                user = await _userManager.GetUserAsync(User);
-            }
-
-            var result = restaurants.Select(r =>
-            {
-                double distanceKm = 0;
-                decimal deliveryFee = r.DeliveryFee;
-
-                if (user != null && user.Latitude != 0 && user.Longitude != 0)
-                {
-                    distanceKm = _distanceService.CalculateDistanceKm(
-                        user.Latitude,
-                        user.Longitude,
-                        r.Latitude,
-                        r.Longitude
-                    );
-
-                    // 🔥 AICI este codul de la punctul 4.3
-                    deliveryFee = 5m + (decimal)distanceKm * 2m;
-                    deliveryFee = Math.Min(deliveryFee, 25m);
-
-                }
-
-                return new EatUp.Models.ViewModels.RestaurantDistanceViewModel
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    ImageUrl = r.ImageUrl,
-                    DeliveryTimeMinutes = r.DeliveryTimeMinutes,
-                    DistanceKm = Math.Round(distanceKm, 1),
-                    DeliveryFee = Math.Round(deliveryFee, 2)
-                };
-            })
-            .OrderBy(r => r.DistanceKm)
-            .ToList();
+                Id = r.Id,
+                Name = r.Name,
+                ImageUrl = r.ImageUrl,
+                DeliveryTimeMinutes = r.DeliveryTimeMinutes
+            }).ToList();
 
             return View(result);
+
+
+           
         }
 
 

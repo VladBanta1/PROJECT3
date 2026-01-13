@@ -36,7 +36,7 @@
 
         <div class="d-flex justify-content-between">
             <strong>Subtotal</strong>
-            <<strong>@Model.Subtotal.ToString("0.00") lei</strong>
+            <strong>@Model.Subtotal.ToString("0.00") lei</strong>
         </div>
 
         <div class="d-flex justify-content-between">
@@ -65,12 +65,15 @@
 
 <form asp-action="CheckoutConfirm" method="post">
     @Html.AntiForgeryToken()
-
+    <input type="hidden" name="DeliveryFee" id="deliveryFeeInput" />
+    <input type="hidden" name="Subtotal" value="@Model.Subtotal" />
     <button type="submit" class="btn btn-success">
         Place order
     </button>
     <input type="hidden" name="Latitude" id="orderLat" />
     <input type="hidden" name="Longitude" id="orderLng" />
+   
+
 </form>
 
 
@@ -78,46 +81,69 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-    const restaurantLat = @Model.RestaurantLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    const restaurantLng = @Model.RestaurantLng.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    const subtotal = @Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    document.addEventListener("DOMContentLoaded", function () {
 
-    function haversine(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(lat1 * Math.PI / 180) *
-            Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
-        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-    }
+        const restaurantLat = @Model.RestaurantLat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        const restaurantLng = @Model.RestaurantLng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        const subtotal = @Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    const map = L.map('map').setView([restaurantLat, restaurantLng], 13);
+        console.log("DEBUG restaurantLat:", restaurantLat);
+        console.log("DEBUG restaurantLng:", restaurantLng);
+        console.log("DEBUG subtotal:", subtotal);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        function haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
 
-    const marker = L.marker([restaurantLat, restaurantLng], { draggable: true }).addTo(map);
+            const a =
+                Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
 
-    function updateDelivery(lat, lng) {
-        const distance = haversine(restaurantLat, restaurantLng, lat, lng);
-        let delivery = 5 + distance * 2;
-        delivery = Math.min(delivery, 25);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
 
-        document.getElementById("distance").innerText = distance.toFixed(2);
-        document.getElementById("deliveryFee").innerText = delivery.toFixed(2);
-        document.getElementById("totalPrice").innerText =
-            (parseFloat(subtotal) + delivery).toFixed(2);
-    }
+        const map = L.map('map').setView([restaurantLat, restaurantLng], 13);
 
-    marker.on('dragend', () => {
-        const pos = marker.getLatLng();
-        updateDelivery(pos.lat, pos.lng);
-    });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    map.on('click', e => {
-        marker.setLatLng(e.latlng);
-        updateDelivery(e.latlng.lat, e.latlng.lng);
+        const marker = L.marker([restaurantLat, restaurantLng], { draggable: true }).addTo(map);
+
+        function updateDelivery(lat, lng) {
+            const distance = haversine(restaurantLat, restaurantLng, lat, lng);
+
+            let delivery = 5 + distance * 2;
+            delivery = Math.min(delivery, 25);
+
+            console.log("DEBUG distance:", distance);
+            console.log("DEBUG delivery:", delivery);
+
+            document.getElementById("distance").innerText = distance.toFixed(2);
+            document.getElementById("deliveryFee").innerText = delivery.toFixed(2);
+            document.getElementById("totalPrice").innerText =
+                (parseFloat(subtotal) + delivery).toFixed(2);
+
+            document.getElementById("deliveryFeeInput").value =
+                delivery.toFixed(2).replace('.', ',');
+
+
+            console.log(
+                "DEBUG deliveryFeeInput:",
+                document.getElementById("deliveryFeeInput").value
+            );
+        }
+
+        marker.on('dragend', function () {
+            const pos = marker.getLatLng();
+            updateDelivery(pos.lat, pos.lng);
+        });
+
+        map.on('click', function (e) {
+            marker.setLatLng(e.latlng);
+            updateDelivery(e.latlng.lat, e.latlng.lng);
+        });
+
     });
 </script>

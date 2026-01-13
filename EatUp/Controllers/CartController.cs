@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using EatUp.Helpers;
 using EatUp.Models.ViewModels;
+using EatUp.Services;
 
 namespace EatUp.Controllers
 {
@@ -15,12 +16,16 @@ namespace EatUp.Controllers
         private readonly ApplicationDbContext _context;
         private const string CartSessionKey = "Cart";
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly DistanceService _distanceService;
+
 
         public CartController(ApplicationDbContext context,
-                              UserManager<ApplicationUser> userManager)
+                              UserManager<ApplicationUser> userManager,
+                              DistanceService distanceService)
         {
             _context = context;
             _userManager = userManager;
+            _distanceService = distanceService;
         }
 
         public class LocationDto
@@ -108,16 +113,14 @@ namespace EatUp.Controllers
         // POST: /Cart/Checkout
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize] // ⬅️ OBLIGATORIU LOGAT
-        public async Task<IActionResult> CheckoutConfirm()
+        [Authorize]
+        public async Task<IActionResult> CheckoutConfirm(CheckoutConfirmViewModel model)
         {
+            Console.WriteLine("DEBUG Subtotal RECEIVED: " + model.Subtotal);
+            Console.WriteLine("DEBUG DeliveryFee RECEIVED: " + model.DeliveryFee);
             var cart = GetCart();
-
             if (cart == null || !cart.Any())
-            {
-                TempData["CartError"] = "Your cart is empty.";
                 return RedirectToAction("Index");
-            }
 
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -128,7 +131,11 @@ namespace EatUp.Controllers
                 CustomerName = user.FullName,
                 CustomerAddress = user.Address,
                 CustomerPhone = user.PhoneNumber,
-                TotalPrice = cart.Sum(c => c.TotalPrice),
+
+                Subtotal = model.Subtotal,
+                DeliveryFee = model.DeliveryFee,
+                TotalPrice = model.Subtotal + model.DeliveryFee,
+
                 CreatedAt = DateTime.Now,
                 UserId = user.Id
             };
@@ -151,8 +158,13 @@ namespace EatUp.Controllers
 
             SaveCart(new List<CartItem>());
             TempData["Success"] = "Your order has been placed successfully.";
+
             return RedirectToAction("Confirmation", new { id = order.Id });
         }
+
+
+
+
 
 
         // =======================
@@ -208,6 +220,8 @@ namespace EatUp.Controllers
 
             decimal deliveryFee = (decimal)(5 + distanceKm * 2);
             deliveryFee = Math.Min(deliveryFee, 25);
+            HttpContext.Session.SetInt32("DeliveryFee", (int)deliveryFee);
+
 
             decimal subtotal = GetCartSubtotal(); // deja o ai
             decimal total = subtotal + deliveryFee;
@@ -228,6 +242,36 @@ namespace EatUp.Controllers
                 return 0;
 
             return cart.Sum(i => i.UnitPrice * i.Quantity);
+        }
+
+        [HttpPost]
+        public IActionResult Increase(int menuItemId)
+        {
+            var cart = GetCart();
+            var item = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+
+            if (item != null)
+                item.Quantity++;
+
+            SaveCart(cart);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public IActionResult Decrease(int menuItemId)
+        {
+            var cart = GetCart();
+            var item = cart.FirstOrDefault(i => i.MenuItemId == menuItemId);
+
+            if (item != null)
+            {
+                item.Quantity--;
+                if (item.Quantity <= 0)
+                    cart.Remove(item);
+            }
+
+            SaveCart(cart);
+            return RedirectToAction(nameof(Index));
         }
 
 

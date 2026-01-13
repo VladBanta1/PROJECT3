@@ -1,4 +1,5 @@
-﻿@model IEnumerable<EatUp.Models.ViewModels.RestaurantDistanceViewModel>
+﻿@model IEnumerable<EatUp.Models.ViewModels.RestaurantCardViewModel>
+
 
 
 @{
@@ -33,11 +34,7 @@
 
                     <h5 class="mb-1">@item.Name</h5>
 
-                    <p class="text-muted mb-0">
-                        @item.DeliveryTimeMinutes min •
-                        @item.DistanceKm km •
-                        @item.DeliveryFee.ToString("0.00") lei delivery
-                    </p>
+                    
 
 
                     

@@ -11,11 +11,21 @@
 
 <p>
     <strong>Order ID:</strong> @Model.Id <br />
-    <strong>Total:</strong> @Model.TotalPrice.ToString("0.00") lei <br />
+
+    <strong>Subtotal:</strong>
+    @Model.Subtotal.ToString("0.00") lei <br />
+
+    <strong>Delivery:</strong>
+    @Model.DeliveryFee.ToString("0.00") lei <br />
+
+    <strong>Total:</strong>
+    @Model.TotalPrice.ToString("0.00") lei <br />
+
     <strong>Address:</strong> @Model.CustomerAddress <br />
     <strong>Phone:</strong> @Model.CustomerPhone <br />
     <strong>Date:</strong> @Model.CreatedAt
 </p>
+
 
 <h4>Items</h4>
 
