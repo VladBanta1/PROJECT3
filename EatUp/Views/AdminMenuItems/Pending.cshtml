@@ -1,0 +1,79 @@
+﻿@model IEnumerable<EatUp.Models.MenuItem>
+
+@{
+    ViewData["Title"] = "Pending Menu Items";
+}
+
+<h1 class="mb-4">
+    Pending Menu Items
+</h1>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-success">
+        No menu items pending approval.
+    </div>
+
+    <a asp-controller="Restaurants"
+       asp-action="Index"
+       class="btn btn-secondary mt-3">
+        Back to Restaurants
+    </a>
+
+    return;
+}
+
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th>Image</th>
+            <th>Restaurant</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    <img src="@(string.IsNullOrEmpty(item.ImageUrl)
+                        ? "/images/default-image.png"
+                        : item.ImageUrl)"
+                         style="width:70px;height:70px;object-fit:cover;border-radius:8px;" />
+                </td>
+
+                <td>@item.Restaurant.Name</td>
+
+                <td>@item.Name</td>
+
+                <td>@item.Price.ToString("0.00") lei</td>
+
+                <td>
+                    <span class="badge bg-danger">
+                        Pending
+                    </span>
+                </td>
+
+                <td>
+                    <form asp-action="Approve" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button class="btn btn-success btn-sm">
+                            Approve
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-controller="Restaurants"
+   asp-action="Index"
+   class="btn btn-secondary mt-3">
+    Back to Restaurants
+</a>

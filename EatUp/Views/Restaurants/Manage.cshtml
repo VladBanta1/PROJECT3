@@ -29,12 +29,23 @@
         }
     </p>
 
-    <a asp-controller="Restaurants"
-       asp-action="Edit"
-       asp-route-id="@Model.Id"
-       class="btn btn-outline-primary mt-2">
-        Edit Restaurant
-    </a>
+    <div class="d-flex gap-2 mt-2">
+        <a asp-action="Edit"
+           asp-controller="Restaurants"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-primary">
+            Edit Restaurant
+        </a>
+
+        <a asp-action="Orders"
+           asp-controller="Restaurants"
+           class="btn btn-outline-primary">
+            View Orders
+        </a>
+    </div>
+
+
+
 </div>
 
 <!-- MENU ITEMS -->
@@ -69,7 +80,19 @@
                 {
                     <tr>
                         <td>@item.Name</td>
-                        <td>@item.Price.ToString("0.00") lei</td>
+                        <td>
+                            @item.Price.ToString("0.00") lei
+                            <br />
+                            @if (!item.IsApproved)
+                            {
+                                <span class="badge bg-warning text-dark mt-1">Pending approval</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success mt-1">Approved</span>
+                            }
+                        </td>
+
                         <td class="text-end">
 
                             <a asp-controller="MenuItems"

@@ -65,6 +65,15 @@
 
 <form asp-action="CheckoutConfirm" method="post">
     @Html.AntiForgeryToken()
+    <div class="mb-3">
+        <label class="form-label"><strong>Delivery address</strong></label>
+        <input type="text"
+               class="form-control"
+               name="DeliveryAddress"
+               placeholder="Ex: Str. Mihai Viteazu nr. 10, Craiova"
+               required />
+    </div>
+
     <input type="hidden" name="DeliveryFee" id="deliveryFeeInput" />
     <input type="hidden" name="Subtotal" value="@Model.Subtotal" />
     <button type="submit" class="btn btn-success">

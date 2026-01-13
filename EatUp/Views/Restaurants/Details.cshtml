@@ -32,7 +32,8 @@
 @if (Model.MenuItems != null && Model.MenuItems.Count > 0)
 {
     <div class="row">
-        @foreach (var item in Model.MenuItems)
+        @foreach (var item in Model.MenuItems.Where(m => m.IsApproved))
+
         {
             // poză produs (ATENȚIE: alt placeholder decât la restaurant)
             var itemImage = string.IsNullOrWhiteSpace(item.ImageUrl)
