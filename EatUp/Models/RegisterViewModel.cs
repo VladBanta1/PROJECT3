@@ -7,7 +7,7 @@ namespace EatUp.Models.ViewModels
         [Required]
         public string AccountType { get; set; } = "Client";
 
-        // COMUNE
+ 
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
 
@@ -19,10 +19,10 @@ namespace EatUp.Models.ViewModels
 
         public string PhoneNumber { get; set; } = string.Empty;
 
-        // CLIENT
+       
         public string? Address { get; set; }
 
-        // RESTAURANT
+       
         public string? RestaurantName { get; set; }
         public string? RestaurantAddress { get; set; }
     }

@@ -27,9 +27,8 @@ namespace EatUp.Controllers
             _geocodingService = geocodingService;
         }
 
-        // =======================
+ 
         // LOGIN
-        // =======================
 
         public IActionResult Login() => View();
 
@@ -49,7 +48,7 @@ namespace EatUp.Controllers
 
             if (result.Succeeded)
             {
-                // 🔥 FALLBACK GEOLOCATION – dacă browserul nu a trimis locația
+                // FALLBACK GEOLOCATION – dacă browserul nu a trimis locația
                 if (user.Latitude == 0 && user.Longitude == 0 && !string.IsNullOrEmpty(user.Address))
                 {
                     var coords = await _geocodingService.GetCoordinatesAsync(user.Address);
@@ -71,9 +70,7 @@ namespace EatUp.Controllers
         }
 
 
-        // =======================
         // REGISTER
-        // =======================
 
         public IActionResult Register()
         {
@@ -135,9 +132,7 @@ namespace EatUp.Controllers
 
         }
 
-        // =======================
         // LOGOUT
-        // =======================
 
         [HttpPost]
         public async Task<IActionResult> Logout()
